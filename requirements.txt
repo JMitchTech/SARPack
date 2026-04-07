@@ -1,0 +1,44 @@
+# SARPack — Python dependencies
+# Install with: pip install -r requirements.txt
+#
+# Minimum Python version: 3.10
+# (required for `dict | None` union syntax used throughout)
+
+# -----------------------------------------------------------------------
+# Core framework
+# -----------------------------------------------------------------------
+flask>=3.0.0
+flask-socketio>=5.3.0
+
+# -----------------------------------------------------------------------
+# Database
+# -----------------------------------------------------------------------
+alembic>=1.13.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0     # PostgreSQL driver — binary build, no compile needed
+
+# -----------------------------------------------------------------------
+# Environment / config
+# -----------------------------------------------------------------------
+python-dotenv>=1.0.0        # loads .env file in development
+
+# -----------------------------------------------------------------------
+# Launcher (Toughbook tray app)
+# -----------------------------------------------------------------------
+pystray>=0.19.0
+pillow>=10.0.0              # PIL — used by pystray for icon rendering
+
+# -----------------------------------------------------------------------
+# Future apps (install now, use later)
+# -----------------------------------------------------------------------
+# RELAY
+paramiko>=3.0.0             # SSH honeypot patterns from MIMIC — used for radio auth
+
+# TRAILHEAD
+# (PWA served by Flask — no additional Python deps beyond flask)
+
+# -----------------------------------------------------------------------
+# Development / testing
+# -----------------------------------------------------------------------
+pytest>=7.0.0
+pytest-flask>=1.3.0
