@@ -19,6 +19,7 @@ from warden.routes.personnel import personnel_bp
 from warden.routes.certifications import certifications_bp
 from warden.routes.equipment import equipment_bp
 from warden.routes.users import users_bp
+from warden.routes.schedules import schedules_bp
 
 log = logging.getLogger("warden")
 
@@ -39,6 +40,7 @@ def create_app() -> Flask:
     app.register_blueprint(certifications_bp,  url_prefix="/api/certifications")
     app.register_blueprint(equipment_bp,       url_prefix="/api/equipment")
     app.register_blueprint(users_bp,           url_prefix="/api/users")
+    app.register_blueprint(schedules_bp,       url_prefix="/api/schedules")
 
     # Health check — sarpack.py watchdog and future monitoring use this
     @app.route("/health")
