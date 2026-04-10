@@ -14,11 +14,11 @@ Designed to work when lives depend on it.
 
 | App | Role | Status |
 |---|---|---|
-| **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | Planned — Phase 2 |
+| **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | COMPLETE — Phase 2 |
 | **TRAILHEAD** | Offline mobile PWA carried by every field operator | Planned — Phase 4 |
 | **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | Planned — Phase 3 |
 | **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | Planned — Phase 3 |
-| **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | In development — Phase 1 |
+| **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | COMPLETE — Phase 1 |
 
 ---
 
