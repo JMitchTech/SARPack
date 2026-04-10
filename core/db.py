@@ -208,7 +208,8 @@ CREATE TABLE IF NOT EXISTS gps_tracks (
     elevation               REAL,
     accuracy                REAL,
     recorded_at             TEXT NOT NULL,
-    source                  TEXT NOT NULL DEFAULT 'trailhead'  -- 'trailhead' | 'relay' | 'manual'
+    source                  TEXT NOT NULL DEFAULT 'trailhead',
+    created_at              TEXT NOT NULL
     -- append-only: no version column, never updated
 );
 
@@ -236,7 +237,8 @@ CREATE TABLE IF NOT EXISTS radio_log (
     message                 TEXT NOT NULL,
     logged_at               TEXT NOT NULL,
     is_missed_checkin       INTEGER NOT NULL DEFAULT 0,
-    source                  TEXT NOT NULL DEFAULT 'manual'  -- 'manual' | 'relay'
+    source                  TEXT NOT NULL DEFAULT 'manual',
+    created_at              TEXT NOT NULL
     -- append-only: no version column, never updated
 );
 
