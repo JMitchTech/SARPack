@@ -79,8 +79,8 @@ Narrative fields are completed by the IC. A compliance validator flags missing r
 | Phase | Deliverable | Status |
 |---|---|---|
 | Phase 0 | Shared DB module, auth, sync engine, migrations, launcher | ✅ Complete |
-| Phase 1 | WARDEN — personnel, certifications, equipment | 🔄 In progress |
-| Phase 2 | BASECAMP — incident command, map, deployments | Planned |
+| Phase 1 | WARDEN — personnel, certifications, equipment | ✅ Complete |
+| Phase 2 | BASECAMP — incident command, map, deployments | ✅ Complete |
 | Phase 3 | LOGBOOK + RELAY (parallel) | Planned |
 | Phase 4 | TRAILHEAD — offline PWA | Planned |
 | Phase 5 | ADS integration, tabletop test, production deploy | Planned |
