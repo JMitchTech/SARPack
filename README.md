@@ -15,9 +15,9 @@ Designed to work when lives depend on it.
 | App | Role | Status |
 |---|---|---|
 | **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | COMPLETE — Phase 2 |
-| **TRAILHEAD** | Offline mobile PWA carried by every field operator | Planned — Phase 4 |
-| **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | Planned — Phase 3 |
-| **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | Planned — Phase 3 |
+| **TRAILHEAD** | Offline mobile PWA carried by every field operator | COMPLETE — Phase 4 |
+| **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | DEFERRED [HARDWARE REQUIRED FIRST] — Phase 3 |
+| **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | COMPLETE — Phase 3 |
 | **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | COMPLETE — Phase 1 |
 
 ---
@@ -81,8 +81,8 @@ Narrative fields are completed by the IC. A compliance validator flags missing r
 | Phase 0 | Shared DB module, auth, sync engine, migrations, launcher | ✅ Complete |
 | Phase 1 | WARDEN — personnel, certifications, equipment | ✅ Complete |
 | Phase 2 | BASECAMP — incident command, map, deployments | ✅ Complete |
-| Phase 3 | LOGBOOK + RELAY (parallel) | Planned |
-| Phase 4 | TRAILHEAD — offline PWA | Planned |
+| Phase 3 | LOGBOOK + RELAY (parallel) | ✅ Complete + RELAY DEFERRED |
+| Phase 4 | TRAILHEAD — offline PWA | ✅ Complete |
 | Phase 5 | ADS integration, tabletop test, production deploy | Planned |
 
 ---
