@@ -42,3 +42,4 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+seed_user.py

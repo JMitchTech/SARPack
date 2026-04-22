@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BASECAMP — SARPack Command</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <link rel="stylesheet" href="/static/css/basecamp.css"/>
+</head>
+<body>
+
+<!-- -------------------------------------------------------------------------
+     TOP BAR
+------------------------------------------------------------------------- -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand">
+      <span class="brand-icon">⛺</span>
+      <span class="brand-name">BASECAMP</span>
+    </div>
+    <div class="incident-selector" id="incident-selector">
+      <span class="incident-label" id="current-incident-label">No active incident</span>
+      <span class="incident-caret">▾</span>
+      <div class="incident-dropdown" id="incident-dropdown"></div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="op-clock" id="op-clock">--:--:--</div>
+    <div class="op-clock-label">OPERATION TIME</div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-indicator" id="sync-indicator">
+      <span class="sync-dot online"></span>
+      <span class="sync-label" id="sync-label">Synced</span>
+    </div>
+    <div class="user-chip" id="user-chip">
+      <span class="user-role" id="user-role">IC</span>
+      <span class="user-name" id="user-name">Loading...</span>
+    </div>
+    <button class="btn-icon" onclick="handleLogout()" title="Sign out">⎋</button>
+  </div>
+</header>
+
+<!-- -------------------------------------------------------------------------
+     SIDEBAR NAV
+------------------------------------------------------------------------- -->
+<div class="layout">
+  <nav class="sidebar">
+    <button class="nav-btn active" data-screen="overview" onclick="switchScreen('overview')">
+      <span class="nav-icon">◈</span>
+      <span class="nav-label">Overview</span>
+    </button>
+    <button class="nav-btn" data-screen="map" onclick="switchScreen('map')">
+      <span class="nav-icon">◉</span>
+      <span class="nav-label">Map</span>
+    </button>
+    <button class="nav-btn" data-screen="deployments" onclick="switchScreen('deployments')">
+      <span class="nav-icon">◎</span>
+      <span class="nav-label">Deploy</span>
+    </button>
+    <button class="nav-btn" data-screen="radio" onclick="switchScreen('radio')">
+      <span class="nav-icon">◷</span>
+      <span class="nav-label">Radio</span>
+    </button>
+    <button class="nav-btn" data-screen="logbook" onclick="switchScreen('logbook')">
+      <span class="nav-icon">◫</span>
+      <span class="nav-label">Logbook</span>
+    </button>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-btn nav-btn-danger" onclick="showNewIncidentModal()">
+      <span class="nav-icon">+</span>
+      <span class="nav-label">New</span>
+    </button>
+  </nav>
+
+<!-- -------------------------------------------------------------------------
+     MAIN CONTENT AREA
+------------------------------------------------------------------------- -->
+  <main class="content">
+
+    <!-- MISSED CHECK-IN ALERT BANNER -->
+    <div class="alert-banner" id="alert-banner" style="display:none;">
+      <span class="alert-icon">⚠</span>
+      <span class="alert-text" id="alert-text"></span>
+      <button class="alert-dismiss" onclick="dismissAlert()">✕</button>
+    </div>
+
+    <!-- ===================================================================
+         OVERVIEW SCREEN
+    =================================================================== -->
+    <div class="screen active" id="screen-overview">
+      <div class="screen-header">
+        <h1 class="screen-title">Incident overview</h1>
+        <div class="screen-actions">
+          <button class="btn btn-secondary" onclick="refreshOverview()">↻ Refresh</button>
+          <button class="btn btn-primary" onclick="switchScreen('map')">Open map</button>
+        </div>
+      </div>
+
+      <!-- Stat cards row -->
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-deployed">—</div>
+          <div class="stat-label">Deployed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-segments">—</div>
+          <div class="stat-label">Segments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-cleared">—</div>
+          <div class="stat-label">Cleared</div>
+        </div>
+        <div class="stat-card stat-card-alert" id="stat-missed-card">
+          <div class="stat-value stat-alert" id="stat-missed">—</div>
+          <div class="stat-label">Missed check-ins</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-radio">—</div>
+          <div class="stat-label">Radio entries</div>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="two-col">
+
+        <!-- Left: On-call roster -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">On-call roster</span>
+            <span class="panel-badge" id="oncall-count">0</span>
+          </div>
+          <div class="panel-body" id="oncall-list">
+            <div class="empty-state">Loading on-call roster...</div>
+          </div>
+        </div>
+
+        <!-- Right: Recent radio log -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Recent radio activity</span>
+            <button class="panel-link" onclick="switchScreen('radio')">View all →</button>
+          </div>
+          <div class="panel-body" id="overview-radio-list">
+            <div class="empty-state">No radio entries yet.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Segment status -->
+      <div class="panel mt-16">
+        <div class="panel-header">
+          <span class="panel-title">Search segments</span>
+          <button class="btn btn-secondary btn-sm" onclick="showSegmentModal()">+ Add segment</button>
+        </div>
+        <div class="panel-body" id="segment-list">
+          <div class="empty-state">No segments defined. Create segments in BASECAMP or via the map.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===================================================================
+         MAP SCREEN
+    =================================================================== -->
+    <div class="screen" id="screen-map">
+      <div class="map-layout">
+        <div id="map" class="map-container"></div>
+        <div class="map-sidebar">
+          <div class="panel-header">
+            <span class="panel-title">Field positions</span>
+            <button class="btn btn-secondary btn-sm" onclick="refreshMap()">↻</button>
+          </div>
+          <div id="map-operator-list" class="map-operator-list"></div>
+          <div class="panel-header mt-16">
+            <span class="panel-title">Segments</span>
+          </div>
+          <div id="map-segment-list" class="map-operator-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         DEPLOYMENTS SCREEN
+    =================================================================== -->
+    <div class="screen" id="screen-deployments">
+      <div class="screen-header">
+        <h1 class="screen-title">Deployments</h1>
+        <div class="screen-actions">
+          <button class="btn btn-primary" onclick="showCheckinModal()">+ Check in</button>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="active" onclick="filterDeployments('active', this)">Active</button>
+        <button class="filter-btn" data-filter="checked_out" onclick="filterDeployments('checked_out', this)">Checked out</button>
+        <button class="filter-btn" data-filter="all" onclick="filterDeployments('all', this)">All</button>
+        <input type="text" class="search-input" placeholder="Search by name or call sign..." id="deploy-search" oninput="searchDeployments()"/>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="data-table" id="deployments-table">
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th>Call sign</th>
+              <th>Role</th>
+              <th>Division</th>
+              <th>Team</th>
+              <th>Checked in</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="deployments-tbody">
+            <tr><td colspan="8" class="empty-cell">Loading deployments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         RADIO LOG SCREEN
+    =================================================================== -->
+    <div class="screen" id="screen-radio">
+      <div class="screen-header">
+        <h1 class="screen-title">Radio log</h1>
+        <div class="screen-actions">
+          <button class="btn btn-secondary" onclick="flagMissedCheckin()">⚑ Flag missed check-in</button>
+          <button class="btn btn-primary" onclick="showRadioEntryModal()">+ Log entry</button>
+        </div>
+      </div>
+
+      <div class="radio-stats" id="radio-stats">
+        <span class="radio-stat"><span id="radio-total">0</span> total entries</span>
+        <span class="radio-stat radio-stat-alert"><span id="radio-missed">0</span> missed check-ins</span>
+        <span class="radio-stat">Last activity: <span id="radio-last">—</span></span>
+      </div>
+
+      <div class="radio-log" id="radio-log-list">
+        <div class="empty-state">No radio entries for this incident.</div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         LOGBOOK SCREEN
+    =================================================================== -->
+    <div class="screen" id="screen-logbook">
+      <div class="screen-header">
+        <h1 class="screen-title">Logbook — ICS forms</h1>
+        <div class="screen-actions">
+          <button class="btn btn-secondary" id="btn-compile" onclick="compileForms()">↻ Compile forms</button>
+          <button class="btn btn-primary" id="btn-sign" onclick="signForms()" disabled>✎ IC sign-off</button>
+        </div>
+      </div>
+
+      <!-- Validation summary -->
+      <div class="validation-banner" id="validation-banner" style="display:none;">
+        <div class="val-summary" id="val-summary"></div>
+      </div>
+
+      <!-- Forms grid -->
+      <div class="forms-grid" id="forms-grid">
+        <div class="empty-state">Click "Compile forms" to generate ICS forms from current incident data.</div>
+      </div>
+
+      <!-- Export row -->
+      <div class="export-row" id="export-row" style="display:none;">
+        <span class="export-label">Export signed packet:</span>
+        <button class="btn btn-primary" onclick="exportZip()">⬇ Download ZIP packet</button>
+        <button class="btn btn-secondary" onclick="exportJson()">⬇ JSON export</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- =========================================================================
+     MODALS
+========================================================================= -->
+
+<!-- New incident modal -->
+<div class="modal-overlay" id="modal-new-incident" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Create new incident</span>
+      <button class="modal-close" onclick="closeModal('modal-new-incident')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Incident name</label>
+        <input type="text" id="new-incident-name" placeholder="e.g. Lost Hiker — Blue Mountain"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="new-incident-type">
+            <option value="sar">Search and rescue</option>
+            <option value="disaster_relief">Disaster relief</option>
+            <option value="training">Training</option>
+            <option value="standby">Standby</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>County</label>
+          <input type="text" id="new-incident-county" placeholder="e.g. Schuylkill"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Latitude</label>
+          <input type="number" id="new-incident-lat" placeholder="40.7128" step="0.0001"/>
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input type="number" id="new-incident-lng" placeholder="-75.0060" step="0.0001"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="new-incident-notes" placeholder="Initial briefing notes..."></textarea>
+      </div>
+      <div class="error-msg" id="new-incident-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-incident')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewIncident()">Create incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- Check-in modal -->
+<div class="modal-overlay" id="modal-checkin" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Check in operator</span>
+      <button class="modal-close" onclick="closeModal('modal-checkin')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Personnel</label>
+        <select id="checkin-personnel">
+          <option value="">Select operator...</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Role</label>
+          <input type="text" id="checkin-role" placeholder="e.g. Search Team Leader"/>
+        </div>
+        <div class="form-group">
+          <label>Division</label>
+          <input type="text" id="checkin-division" placeholder="e.g. Alpha"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Team</label>
+        <input type="text" id="checkin-team" placeholder="e.g. A1"/>
+      </div>
+      <div class="error-msg" id="checkin-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-checkin')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCheckin()">Check in</button>
+    </div>
+  </div>
+</div>
+
+<!-- Radio entry modal -->
+<div class="modal-overlay" id="modal-radio" style="display:none;">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span class="modal-title">Log radio entry</span>
+      <button class="modal-close" onclick="closeModal('modal-radio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Operator</label>
+          <select id="radio-personnel">
+            <option value="">Unknown / general</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Channel</label>
+          <input type="text" id="radio-channel" placeholder="e.g. TAC-1"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="radio-message" placeholder="Enter radio log entry..."></textarea>
+      </div>
+      <div class="error-msg" id="radio-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-radio')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRadioEntry()">Log entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Narrative modal (for logbook IC narrative fields) -->
+<div class="modal-overlay" id="modal-narrative" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="narrative-modal-title">Complete form fields</span>
+      <button class="modal-close" onclick="closeModal('modal-narrative')">✕</button>
+    </div>
+    <div class="modal-body" id="narrative-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-narrative')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNarrative()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sign-off confirmation modal -->
+<div class="modal-overlay" id="modal-signoff" style="display:none;">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span class="modal-title">IC sign-off</span>
+      <button class="modal-close" onclick="closeModal('modal-signoff')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-confirm-text">
+        You are about to digitally sign all ICS forms for this incident.<br/><br/>
+        <strong>Signed forms are immutable.</strong> Any amendments will create a new version.<br/><br/>
+        Confirm your identity to proceed.
+      </p>
+      <div class="form-group mt-16">
+        <label>Your password (confirmation)</label>
+        <input type="password" id="signoff-password" placeholder="Enter your password"/>
+      </div>
+      <div class="error-msg" id="signoff-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-signoff')">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-sign" onclick="confirmSignoff()">Sign all forms</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login overlay (shown if not authenticated) -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="brand-icon large">⛺</span>
+      <span class="login-title">BASECAMP</span>
+      <span class="login-subtitle">SARPack Command</span>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') handleLogin()"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="handleLogin()">Sign in</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/static/js/basecamp.js"></script>
+</body>
+</html>

@@ -11,7 +11,7 @@ Or launched automatically by sarpack.py via system tray.
 """
 
 import logging
-from flask import Flask
+from flask import Flask, jsonify, send_from_directory
 from flask_socketio import SocketIO
 from core import initialize
 from core.config import config
@@ -22,6 +22,8 @@ from basecamp.routes.map         import map_bp
 from basecamp.routes.radio       import radio_bp
 from basecamp.routes.dashboard   import dashboard_bp
 from warden.routes.users         import users_bp
+from logbook.routes.forms        import forms_bp
+from logbook.routes.history      import history_bp
 
 log = logging.getLogger("basecamp")
 
@@ -48,24 +50,40 @@ def create_app() -> Flask:
     app.register_blueprint(radio_bp,       url_prefix="/api/radio")
     app.register_blueprint(dashboard_bp,   url_prefix="/api/dashboard")
     app.register_blueprint(users_bp,       url_prefix="/api/users")
+    app.register_blueprint(forms_bp,       url_prefix="/api/forms")
+    app.register_blueprint(history_bp,     url_prefix="/api/history")
 
-    # Initialize SocketIO — async_mode=threading works with Flask dev server
-    # and standard WSGI servers (gunicorn with --worker-class eventlet for prod)
+    # Also expose WARDEN personnel/certifications endpoints
+    # so BASECAMP can populate check-in dropdowns
+    from warden.routes.personnel     import personnel_bp
+    from warden.routes.certifications import certifications_bp
+    app.register_blueprint(personnel_bp,      url_prefix="/api/personnel")
+    app.register_blueprint(certifications_bp, url_prefix="/api/certifications")
+
+    # Initialize SocketIO
     socketio.init_app(
         app,
         async_mode="threading",
-        cors_allowed_origins="*",   # tighten in production
+        cors_allowed_origins="*",
         logger=False,
         engineio_logger=False,
     )
 
     # Register SocketIO event handlers
-    from basecamp import events  # noqa — registers handlers as side effect
+    from basecamp import events
     events.register(socketio)
 
-    # Health check
-    from flask import jsonify
+    # --- Frontend routes ---
 
+    @app.route("/")
+    def index():
+        return send_from_directory("templates", "index.html")
+
+    @app.route("/static/<path:filename>")
+    def static_files(filename):
+        return send_from_directory("static", filename)
+
+    # Health check
     @app.route("/health")
     def health():
         from core.sync import sync_status
@@ -90,7 +108,7 @@ def create_app() -> Flask:
         log.exception("Internal server error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
 
-    # Start background services after app context is ready
+    # Start background services
     with app.app_context():
         from basecamp.services import start_background_services
         start_background_services(socketio)
@@ -106,5 +124,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=config.PORT_BASECAMP,
         debug=False,
-        use_reloader=False,   # reloader conflicts with background threads
+        use_reloader=False,
     )
