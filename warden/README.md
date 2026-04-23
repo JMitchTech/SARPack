@@ -48,7 +48,7 @@ The roster view displays all personnel records. Each record includes contact inf
   <img src="../docs/screenshots/warden/w_addasset.png" alt="Add Asset" width="800"/>
 </p>
 
-The add asset form creates new equipment records and assigns them to personnel. Assets are categorized by type — radio, medical kit, technical rescue gear, watercraft, aircraft, or other — and linked to a responsible member. Assignment history is retained for accountability.
+The add asset form creates new equipment records and assigns them to personnel. Assets are categorized by type — radio, watercraft, aircraft, or special equipment — and linked to a responsible member. Assignment history is retained for accountability.
 
 ---
 
