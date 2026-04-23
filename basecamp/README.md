@@ -77,9 +77,14 @@ The logbook tab surfaces the LOGBOOK app from within BASECAMP. It provides acces
 <p align="center">
   <img src="../docs/screenshots/basecamp/bc_completeform.png" alt="Complete Form View" width="800"/>
 </p>
+
+This popout window is displayed when the Incident Form is missing required information and gives the Incident Commander an opportunity to complete it properly before digitally signing and submitting the form.
+
 <p align="center">
   <img src="../docs/screenshots/basecamp/bc_toggle.png" alt="Toggle View" width="800"/>
 </p>
+
+BASECAMP, and all the apps within SARPack, is equipped with a Light/Dark Mode toggle button. This will reduce eye strain during night operations and increase visibility during daylight operations.
 
 ---
 
