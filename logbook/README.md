@@ -48,7 +48,7 @@ The active forms view displays the compilation state of all eight ICS forms for 
   <img src="../docs/screenshots/logbook/i_fema.png" alt="ICS Form FEMA Layout" width="800"/>
 </p>
 
-Compiled forms render in the official FEMA layout. Every structured field — incident name, commander, personnel roster, radio assignments, search segments — is pulled directly from the database. Narrative fields are editable inline by the IC before sign-off. Once signed, the rendered form is locked and any amendment creates a new versioned record.
+If you need to contact a specific EMA or locate an office closest to your incident location, the FEMA tab will allow you to look up FEMA/EMA entities by zip code
 
 ---
 
