@@ -173,7 +173,7 @@ python sarpack.py
 
 ## Security
 
-SARPack is monitored in production by the [Arcane Defense Suite](https://github.com/JMitchTech/ARCANE-Defense-Suite) — a custom-built cybersecurity platform providing network scanning, log analysis, honeypot detection, and SIEM correlation.
+SARPack is monitored in production by the [Arcane Defense Suite](https://github.com/JMitchTech/ARCANE-Defense-Suite) 
 
 ---
 
