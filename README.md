@@ -14,11 +14,51 @@ Designed to work when lives depend on it.
 
 | App | Role | Status |
 |---|---|---|
-| **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | COMPLETE — Phase 2 |
-| **TRAILHEAD** | Offline mobile PWA carried by every field operator | COMPLETE — Phase 4 |
-| **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | DEFERRED [HARDWARE REQUIRED FIRST] — Phase 3 |
-| **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | COMPLETE — Phase 3 |
-| **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | COMPLETE — Phase 1 |
+| **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | ✅ COMPLETE |
+| **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | ✅ COMPLETE |
+| **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | ✅ COMPLETE |
+| **TRAILHEAD** | Offline mobile PWA carried by every field operator | 🔧 IN PRODUCTION |
+| **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | ⏸ DEFERRED — Hardware Required |
+
+---
+
+## Screenshots
+
+### BASECAMP
+
+<p align="center">
+  <img src="docs/screenshots/basecamp/bc_login.png" alt="BASECAMP Login" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/basecamp/bc_dash.png" alt="BASECAMP Dashboard" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/basecamp/bc_map.png" alt="BASECAMP Map" width="800"/>
+</p>
+
+### LOGBOOK
+
+<p align="center">
+  <img src="docs/screenshots/logbook/i_login.png" alt="LOGBOOK Login" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/logbook/i_dash.png" alt="LOGBOOK Dashboard" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/logbook/i_fema.png" alt="LOGBOOK ICS Form" width="800"/>
+</p>
+
+### WARDEN
+
+<p align="center">
+  <img src="docs/screenshots/warden/w_login.png" alt="WARDEN Login" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/warden/w_dash.png" alt="WARDEN Dashboard" width="800"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/warden/w_roster.png" alt="WARDEN Roster" width="800"/>
+</p>
 
 ---
 
@@ -26,6 +66,7 @@ Designed to work when lives depend on it.
 
 SARPack is a hybrid local-first system. All five apps share a single SQLite database on a ruggedized Toughbook deployed at base of operations. When connectivity is available, data syncs to a PostgreSQL cloud database. Operations continue without interruption if the connection drops.
 
+```
 Field layer      TRAILHEAD (offline PWA) · RELAY (Meshtastic bridge)
 ↓ sync on signal
 Command layer                  BASECAMP
@@ -35,6 +76,7 @@ Data layer        sarpack.db (SQLite) ←→ PostgreSQL (cloud)
 Reporting layer              LOGBOOK
 ↓
 Security layer       ADS (Arcane Defense Suite)
+```
 
 - **Local-first** — every write goes to SQLite instantly, no network required
 - **Outbox sync pattern** — pending writes queue and replay to the cloud automatically on reconnect
@@ -81,8 +123,9 @@ Narrative fields are completed by the IC. A compliance validator flags missing r
 | Phase 0 | Shared DB module, auth, sync engine, migrations, launcher | ✅ Complete |
 | Phase 1 | WARDEN — personnel, certifications, equipment | ✅ Complete |
 | Phase 2 | BASECAMP — incident command, map, deployments | ✅ Complete |
-| Phase 3 | LOGBOOK + RELAY (parallel) | ✅ Complete + RELAY DEFERRED |
-| Phase 4 | TRAILHEAD — offline PWA | ✅ Complete |
+| Phase 3 | LOGBOOK — ICS form generation and export | ✅ Complete |
+| Phase 3 | RELAY — Meshtastic radio bridge | ⏸ Deferred — Hardware Required |
+| Phase 4 | TRAILHEAD — offline mobile PWA | 🔧 In Production |
 | Phase 5 | ADS integration, tabletop test, production deploy | Planned |
 
 ---
