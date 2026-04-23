@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>BASECAMP — SARPack Command</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <link rel="stylesheet" href="/static/css/basecamp.css"/>
 </head>
@@ -39,6 +39,7 @@
       <span class="user-role" id="user-role">IC</span>
       <span class="user-name" id="user-name">Loading...</span>
     </div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
     <button class="btn-icon" onclick="handleLogout()" title="Sign out">⎋</button>
   </div>
 </header>
@@ -465,8 +466,65 @@
   </div>
 </div>
 
+
+<!-- -------------------------------------------------------------------------
+     CHANGE PASSWORD OVERLAY (forced on first login / after admin reset)
+------------------------------------------------------------------------- -->
+<div class="login-overlay" id="change-pw-overlay" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="brand-icon large">🔒</span>
+      <span class="login-title" style="font-size:20px;letter-spacing:3px;">SET NEW PASSWORD</span>
+      <span class="login-subtitle">You must change your password before continuing</span>
+    </div>
+    <div class="form-group">
+      <label>Current Password</label>
+      <input type="password" id="change-pw-current" placeholder="Enter current password"
+             autocomplete="current-password"/>
+    </div>
+    <div class="form-group">
+      <label>New Password <span style="color:var(--text-muted);font-size:10px;">(min 10 characters)</span></label>
+      <input type="password" id="change-pw-new" placeholder="Enter new password"
+             autocomplete="new-password"/>
+    </div>
+    <div class="form-group">
+      <label>Confirm New Password</label>
+      <input type="password" id="change-pw-confirm" placeholder="Confirm new password"
+             autocomplete="new-password"
+             onkeydown="if(event.key==='Enter') handleChangePassword()"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="change-pw-btn"
+            onclick="handleChangePassword()">Set New Password</button>
+    <div class="error-msg" id="change-pw-error"></div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/static/js/basecamp.js"></script>
+<script>
+// ============================================================
+//  THEME TOGGLE
+// ============================================================
+(function() {
+  const saved = localStorage.getItem('sarpack-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeBtn(saved);
+})();
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sarpack-theme', next);
+  updateThemeBtn(next);
+}
+
+function updateThemeBtn(theme) {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  btn.textContent = theme === 'dark' ? '◑ THEME' : '● THEME';
+}
+</script>
 </body>
 </html>

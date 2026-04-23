@@ -103,6 +103,13 @@ async function handleLogin() {
     state.token = data.token;
     state.user  = data;
     sessionStorage.setItem('sarpack_token', data.token);
+
+    if (data.must_change_password) {
+      hideLogin();
+      showChangePassword();
+      return;
+    }
+
     hideLogin();
     await boot();
   } catch {
@@ -121,6 +128,75 @@ async function handleLogout() {
 }
 window.handleLogout = handleLogout;
 
+// ---------------------------------------------------------------------------
+// Forced password change
+// ---------------------------------------------------------------------------
+
+function showChangePassword() {
+  document.getElementById('change-pw-overlay').style.display = 'flex';
+  document.getElementById('change-pw-current').value = '';
+  document.getElementById('change-pw-new').value     = '';
+  document.getElementById('change-pw-confirm').value = '';
+  document.getElementById('change-pw-error').textContent  = '';
+}
+
+function hideChangePassword() {
+  document.getElementById('change-pw-overlay').style.display = 'none';
+}
+
+async function handleChangePassword() {
+  const currentPw = document.getElementById('change-pw-current').value;
+  const newPw     = document.getElementById('change-pw-new').value;
+  const confirmPw = document.getElementById('change-pw-confirm').value;
+  const errEl     = document.getElementById('change-pw-error');
+  const btn       = document.getElementById('change-pw-btn');
+
+  errEl.textContent = '';
+
+  if (!currentPw || !newPw || !confirmPw) {
+    errEl.textContent = 'All fields are required.'; return;
+  }
+  if (newPw.length < 10) {
+    errEl.textContent = 'New password must be at least 10 characters.'; return;
+  }
+  if (newPw !== confirmPw) {
+    errEl.textContent = 'New passwords do not match.'; return;
+  }
+  if (newPw === currentPw) {
+    errEl.textContent = 'New password must be different from current password.'; return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const r = await fetch(`${API}/api/users/me/change-password`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${state.token}`,
+      },
+      body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      errEl.textContent = data.error || 'Password change failed.';
+      btn.disabled = false; btn.textContent = 'Set New Password';
+      return;
+    }
+    // Success — clear the flag on the local user object and proceed
+    state.user.must_change_password = false;
+    hideChangePassword();
+    await boot();
+  } catch {
+    errEl.textContent = 'Connection error.';
+    btn.disabled = false; btn.textContent = 'Set New Password';
+  }
+}
+
+window.handleChangePassword = handleChangePassword;
+
+
 async function verifyToken() {
   try {
     const r = await fetch(`${API}/api/users/me`, {
@@ -128,6 +204,10 @@ async function verifyToken() {
     });
     if (r.ok) {
       state.user = await r.json();
+      if (state.user.must_change_password) {
+        showChangePassword();
+        return false;   // block normal boot until password is changed
+      }
       return true;
     }
   } catch {}

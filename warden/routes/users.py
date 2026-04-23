@@ -18,6 +18,7 @@ from core.auth import (
     revoke_session,
     revoke_all_sessions,
     hash_password,
+    change_own_password,
     ROLES,
     ROLE_LABELS,
     ROLE_PERMISSIONS,
@@ -36,7 +37,9 @@ users_bp = Blueprint("users", __name__)
 
 # ---------------------------------------------------------------------------
 # POST /api/users/login
-# Authenticate and receive a session token
+# Authenticate and receive a session token.
+# If must_change_password is set, the token is returned but the frontend
+# must show the change-password screen before allowing normal access.
 # ---------------------------------------------------------------------------
 
 @users_bp.route("/login", methods=["POST"])
@@ -66,6 +69,7 @@ def login():
         "role_label": ROLE_LABELS.get(result["role"], result["role"]),
         "permissions": result["permissions"],
         "token": result["token"],
+        "must_change_password": result["must_change_password"],
     }))
     response.set_cookie(
         "sarpack_token",
@@ -74,7 +78,8 @@ def login():
         samesite="Strict",
         max_age=60 * 60 * 12,  # 12 hours — matches SESSION_EXPIRY_HOURS
     )
-    log.info("Login: %s (role=%s)", username, result["role"])
+    log.info("Login: %s (role=%s, must_change=%s)",
+             username, result["role"], result["must_change_password"])
     return response
 
 
@@ -108,13 +113,55 @@ def me():
         return jsonify({"error": "Not authenticated"}), 401
 
     return jsonify({
-        "user_id":     user["id"],
-        "username":    user["username"],
-        "role":        user["role"],
-        "role_label":  ROLE_LABELS.get(user["role"], user["role"]),
-        "permissions": list(ROLE_PERMISSIONS.get(user["role"], set())),
-        "personnel_id": user.get("personnel_id"),
+        "user_id":              user["id"],
+        "username":             user["username"],
+        "role":                 user["role"],
+        "role_label":           ROLE_LABELS.get(user["role"], user["role"]),
+        "permissions":          list(ROLE_PERMISSIONS.get(user["role"], set())),
+        "personnel_id":         user.get("personnel_id"),
+        "must_change_password": bool(user.get("must_change_password", 0)),
     })
+
+
+# ---------------------------------------------------------------------------
+# POST /api/users/me/change-password
+# Authenticated user changes their own password.
+# Requires their current password — clears must_change_password on success.
+# Does NOT require IC role — any logged-in user can change their own password.
+# ---------------------------------------------------------------------------
+
+@users_bp.route("/me/change-password", methods=["POST"])
+def change_password():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    current_password = data.get("current_password", "")
+    new_password     = data.get("new_password", "")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "current_password and new_password are required"}), 400
+
+    if len(new_password) < 10:
+        return jsonify({"error": "New password must be at least 10 characters"}), 400
+
+    if current_password == new_password:
+        return jsonify({"error": "New password must be different from current password"}), 400
+
+    try:
+        success = change_own_password(user["id"], current_password, new_password)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    if not success:
+        return jsonify({"error": "Current password is incorrect"}), 401
+
+    log.info("User '%s' changed their own password", user["username"])
+    return jsonify({"message": "Password updated successfully"})
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +176,7 @@ def list_users():
         rows = db.execute(
             """
             SELECT u.id, u.username, u.role, u.is_active,
+                   u.must_change_password,
                    u.last_login_at, u.created_at,
                    p.first_name, p.last_name, p.call_sign
             FROM users u
@@ -188,22 +236,27 @@ def create_user_account():
                 "existing_user_id": existing["id"],
             }), 409
 
+    must_change = bool(data.get("must_change_password", False))
+
     try:
         user_id = create_user(
             username=data["username"].strip(),
             password=data["password"],
             role=data["role"],
             personnel_id=personnel_id,
+            must_change_password=must_change,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    log.info("Created user account: %s (role=%s)", data["username"], data["role"])
+    log.info("Created user account: %s (role=%s, must_change=%s)",
+             data["username"], data["role"], must_change)
     return jsonify({
         "message": "User account created",
         "id": user_id,
         "username": data["username"],
         "role": data["role"],
+        "must_change_password": must_change,
     }), 201
 
 
@@ -263,7 +316,9 @@ def change_role(user_id):
 
 # ---------------------------------------------------------------------------
 # POST /api/users/<id>/reset-password
-# Reset a user's password — IC only
+# Admin password reset — IC only.
+# Sets a temporary password AND flags must_change_password = 1
+# so the user is forced to set their own password on next login.
 # ---------------------------------------------------------------------------
 
 @users_bp.route("/<user_id>/reset-password", methods=["POST"])
@@ -286,7 +341,10 @@ def reset_password(user_id):
     try:
         versioned_update(
             "users", user_id,
-            {"password_hash": hash_password(new_password)},
+            {
+                "password_hash": hash_password(new_password),
+                "must_change_password": 1,   # force change on next login
+            },
             expected_version=user["version"],
         )
     except VersionConflictError:
@@ -295,9 +353,42 @@ def reset_password(user_id):
     # Revoke all sessions — forces re-login with new password
     revoke_all_sessions(user_id)
 
-    log.info("Password reset for user: %s", user["username"])
+    log.info("Password reset for user: %s (will be forced to change)", user["username"])
     return jsonify({
-        "message": "Password reset. User must log in again.",
+        "message": "Password reset. User must log in and set a new password.",
+        "id": user_id,
+        "must_change_password": True,
+    })
+
+
+# ---------------------------------------------------------------------------
+# POST /api/users/<id>/force-password-change
+# Flag a user to change password on next login — IC only.
+# Does not alter the current password.
+# ---------------------------------------------------------------------------
+
+@users_bp.route("/<user_id>/force-password-change", methods=["POST"])
+@require_ic
+def force_password_change(user_id):
+    user = get_record("users", user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        versioned_update(
+            "users", user_id,
+            {"must_change_password": 1},
+            expected_version=user["version"],
+        )
+    except VersionConflictError:
+        return jsonify({"error": "Version conflict — re-fetch and try again"}), 409
+
+    # Revoke sessions so flag takes effect immediately
+    revoke_all_sessions(user_id)
+
+    log.info("Flagged must_change_password for user: %s", user["username"])
+    return jsonify({
+        "message": f"'{user['username']}' will be required to change password on next login.",
         "id": user_id,
     })
 

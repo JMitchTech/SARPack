@@ -11,7 +11,7 @@ Or launched automatically by sarpack.py via system tray.
 """
 
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from core import initialize
 from core.config import config
 
@@ -34,6 +34,14 @@ def create_app() -> Flask:
 
     # Initialize core — DB, sync engine, config validation
     initialize()
+
+    @app.route("/")
+    def index():
+        return send_from_directory("templates", "index.html")
+
+    @app.route("/static/<path:filename>")
+    def static_files(filename):
+        return send_from_directory("static", filename)
 
     # Register route blueprints
     app.register_blueprint(personnel_bp,       url_prefix="/api/personnel")

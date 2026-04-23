@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WARDEN — Personnel & Asset Administration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ============================================================
+   WARDEN — Design System
+   Aesthetic: Dark tactical command. Bright green accent.
+   Scanline texture, sharp geometry, monospace data.
+   Red/yellow/orange reserved for alerts only.
+   ============================================================ */
+
+:root {
+  /* Surfaces — dark base */
+  --bg-base:       #0b0d0f;
+  --bg-panel:      #111418;
+  --bg-card:       #161b20;
+  --bg-hover:      #1c2229;
+  --bg-input:      #0e1215;
+
+  /* Borders */
+  --border:        #1f2830;
+  --border-bright: #2e3d4a;
+
+  /* Primary accent — bright green */
+  --accent:        #00e676;
+  --accent-dim:    #003d1f;
+  --accent-glow:   rgba(0,230,118,0.10);
+
+  /* Semantic aliases so existing classes just work */
+  --green:         #00e676;
+  --green-dim:     #003d1f;
+  --green-700:     #00e676;
+  --green-800:     #00c060;
+  --green-50:      rgba(0,230,118,0.06);
+  --green-100:     rgba(0,230,118,0.12);
+
+  /* Alert colors — warm palette only */
+  --amber:         #e8a020;
+  --amber-dim:     #3d2800;
+  --amber-glow:    rgba(232,160,32,0.12);
+  --red:           #e05252;
+  --red-dim:       #3d1010;
+  --blue:          #3a9fd8;
+  --blue-dim:      #0d2d42;
+
+  /* Text */
+  --text-primary:  #d4dce6;
+  --text-secondary:#6e8499;
+  --text-muted:    #3d5268;
+
+  /* Fonts */
+  --font-display:  'Rajdhani', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+  --font-body:     'Source Sans 3', sans-serif;
+
+  --radius:        2px;
+  --transition:    0.15s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ---- Scanline texture overlay ---- */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 52px 1fr;
+  height: 100vh;
+}
+
+/* ---- Topbar ---- */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  position: relative;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+  opacity: 0.5;
+}
+
+.topbar-logo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.topbar-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-left: 1px solid var(--border-bright);
+  padding-left: 16px;
+}
+
+.topbar-spacer { flex: 1; }
+
+.topbar-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.topbar-user {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  padding: 4px 10px;
+  letter-spacing: 1px;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 8px 16px 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-left: 2px solid transparent;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.nav-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--red-dim);
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 1px;
+  border: 1px solid var(--red);
+}
+
+/* ---- Main content ---- */
+.main-content {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   VIEWS (shown/hidden)
+   ============================================================ */
+
+.view { display: none; padding: 24px; flex-direction: column; gap: 20px; }
+.view.active { display: flex; }
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.page-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-bright);
+  padding: 3px 8px;
+}
+
+.page-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: #33ff8a; border-color: #33ff8a; }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-bright);
+  color: var(--text-secondary);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--red-dim);
+  color: var(--red);
+}
+.btn-danger:hover { background: var(--red-dim); }
+
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-icon { padding: 6px 10px; }
+
+/* ============================================================
+   SEARCH / FILTER BAR
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 340px;
+}
+
+.search-wrap .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+input[type="text"], input[type="email"], input[type="tel"],
+input[type="date"], input[type="password"], select, textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-bright);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  width: 100%;
+  transition: border-color var(--transition);
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+.search-input {
+  padding-left: 32px;
+}
+
+select option { background: var(--bg-panel); }
+
+/* ============================================================
+   ROSTER TABLE
+   ============================================================ */
+
+.data-table-wrap {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  background: var(--bg-card);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+  cursor: pointer;
+}
+
+.data-table tbody tr:hover { background: var(--bg-hover); }
+.data-table tbody tr:last-child { border-bottom: none; }
+
+.data-table tbody td {
+  padding: 11px 14px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.td-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.td-callsign {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.td-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.badge-active  { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-glow); }
+.badge-inactive{ color: var(--text-muted); border-color: var(--border); }
+.badge-warn    { color: var(--amber); border-color: var(--amber-dim); background: var(--amber-glow); }
+.badge-danger  { color: var(--red); border-color: var(--red-dim); background: rgba(224,82,82,0.08); }
+.badge-info    { color: var(--blue); border-color: var(--blue-dim); background: rgba(58,159,216,0.08); }
+
+/* Cert pills */
+.cert-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.cert-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  border-radius: 1px;
+}
+.cert-pill.medical { border-color: var(--red-dim); color: var(--red); }
+.cert-pill.ics     { border-color: var(--blue-dim); color: var(--blue); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color var(--transition);
+}
+.modal-close:hover { color: var(--text-primary); }
+
+.modal-body {
+  overflow-y: auto;
+  padding: 22px;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   FORM LAYOUT
+   ============================================================ */
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.form-full { grid-column: 1 / -1; }
+
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+
+.form-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* ============================================================
+   DETAIL PANEL (slide-in)
+   ============================================================ */
+
+.detail-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 900;
+  display: none;
+}
+.detail-overlay.open { display: block; }
+
+.detail-panel {
+  position: fixed;
+  top: 0; right: 0;
+  width: 520px;
+  height: 100vh;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-bright);
+  z-index: 910;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  overflow: hidden;
+}
+
+.detail-panel.open { transform: translateX(0); }
+
+.detail-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 2px; height: 100%;
+  background: linear-gradient(180deg, var(--accent), transparent 60%);
+}
+
+.detail-header {
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.detail-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+}
+
+.detail-callsign {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.detail-section {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-section-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.detail-field-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.detail-field-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.detail-field-value.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* Cert list in detail */
+.cert-list { display: flex; flex-direction: column; gap: 6px; }
+
+.cert-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.cert-type {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  flex: 1;
+  font-weight: 500;
+}
+
+.cert-expiry {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cert-actions { display: flex; gap: 4px; }
+
+/* Add cert mini form */
+.add-cert-form {
+  display: none;
+  background: var(--green-50);
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin-top: 8px;
+  gap: 8px;
+  flex-direction: column;
+  border-radius: var(--radius);
+}
+.add-cert-form.open { display: flex; }
+
+/* ============================================================
+   ASSET MANAGEMENT
+   ============================================================ */
+
+.asset-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.asset-tab {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+  user-select: none;
+}
+
+.asset-tab:hover { color: var(--text-primary); }
+.asset-tab.active { color: var(--green-700); border-bottom-color: var(--green-700); }
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.asset-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 16px;
+  transition: all var(--transition);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.asset-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--border);
+  transition: background var(--transition);
+}
+
+.asset-card:hover { border-color: var(--green-600); box-shadow: 0 2px 8px rgba(58,114,50,0.08); }
+.asset-card:hover::before { background: var(--green-600); }
+
+.asset-category-icon {
+  font-size: 22px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.asset-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.asset-serial {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.asset-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.asset-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+/* ============================================================
+   DASHBOARD STATS
+   ============================================================ */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--green-600);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover::after { transform: scaleX(1); }
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--green-800);
+  line-height: 1;
+}
+
+.stat-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Expiry alert list */
+.alert-list { display: flex; flex-direction: column; gap: 8px; }
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: var(--radius);
+}
+
+.alert-item.expired { border-left-color: var(--red); background: #fff8f8; }
+.alert-item.soon    { border-left-color: var(--green-700); background: #fffbf5; }
+
+.alert-person {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alert-cert { font-size: 12px; color: var(--text-secondary); }
+
+.alert-date {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+#toast-container {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px 16px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  min-width: 260px;
+  animation: slideIn 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.toast-success { background: var(--bg-panel); border-color: #86efac; color: var(--green-800); }
+.toast-error   { background: var(--bg-panel); border-color: #fca5a5; color: var(--red); }
+.toast-warn    { background: var(--bg-panel); border-color: #fdba74; color: var(--green-700); }
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green-700);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.text-right { text-align: right; }
+.flex-gap { display: flex; gap: 8px; align-items: center; }
+
+/* ---- Login overlay ---- */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.login-overlay::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+}
+.login-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 360px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 1;
+}
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 70%);
+}
+.login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+  gap: 4px;
+}
+.login-icon { font-size: 36px; line-height: 1; }
+.login-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+.login-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   LIGHT THEME OVERRIDES
+   Applied via [data-theme="light"] on <html>
+   ============================================================ */
+[data-theme="light"] {
+  --bg-base:       #f4f6f8;
+  --bg-panel:      #ffffff;
+  --bg-card:       #f0f2f5;
+  --bg-hover:      #eaf7f0;
+  --bg-input:      #ffffff;
+  --border:        #d8dee6;
+  --border-bright: #b8c4cc;
+  --text-primary:  #0d1117;
+  --text-secondary:#3a4a5a;
+  --text-muted:    #7a8fa0;
+  /* accent stays bright green */
+  --accent:        #00a855;
+  --accent-dim:    #d0f0e0;
+  --accent-glow:   rgba(0,168,85,0.10);
+  --green:         #00a855;
+  --green-dim:     #d0f0e0;
+  --green-700:     #00a855;
+  --green-800:     #007a3d;
+  --green-50:      rgba(0,168,85,0.06);
+  --green-100:     rgba(0,168,85,0.12);
+}
+
+[data-theme="light"] body::before { opacity: 0; }
+
+[data-theme="light"] .topbar {
+  background: #1a2e1a;
+  border-bottom-color: #2a4a2a;
+}
+[data-theme="light"] .topbar::after {
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+}
+[data-theme="light"] .topbar-logo { color: #00e676; }
+[data-theme="light"] .topbar-sub  { color: rgba(255,255,255,0.45); border-left-color: rgba(255,255,255,0.2); }
+[data-theme="light"] .topbar-status { color: rgba(255,255,255,0.6); }
+[data-theme="light"] .topbar-user  { color: #00e676; border-color: rgba(0,230,118,0.4); }
+[data-theme="light"] #theme-toggle { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
+[data-theme="light"] #theme-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+[data-theme="light"] .sidebar { background: #ffffff; border-right-color: var(--border); }
+[data-theme="light"] .nav-item { color: #3a4a5a; }
+[data-theme="light"] .nav-item:hover { background: #eaf7f0; color: #0d1117; }
+[data-theme="light"] .nav-item.active { background: rgba(0,168,85,0.10); border-left-color: var(--accent); color: var(--accent); }
+
+[data-theme="light"] .data-table thead th { background: #f0f2f5; }
+[data-theme="light"] .data-table tbody tr:hover { background: #eaf7f0; }
+
+[data-theme="light"] .modal { box-shadow: 0 24px 64px rgba(0,0,0,0.25); }
+[data-theme="light"] .login-card { box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+
+[data-theme="light"] select option { background: #ffffff; color: #0d1117; }
+
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">WARDEN</div>
+    <div class="topbar-subtitle">Personnel &amp; Asset Administration</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-status">
+      <div class="status-dot"></div>
+      <span id="status-text">ONLINE · LOCAL MODE</span>
+    </div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
+    <div class="topbar-user" id="topbar-user">IC · ADMIN</div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Operations</div>
+    <div class="nav-item active" data-view="dashboard">
+      <span class="nav-icon">◈</span> Dashboard
+    </div>
+    <div class="nav-item" data-view="personnel">
+      <span class="nav-icon">◉</span> Personnel
+    </div>
+
+    <div class="sidebar-section">Assets</div>
+    <div class="nav-item" data-view="air-assets">
+      <span class="nav-icon">◇</span> Air Assets
+    </div>
+    <div class="nav-item" data-view="watercraft">
+      <span class="nav-icon">◈</span> Watercraft
+    </div>
+    <div class="nav-item" data-view="equipment-org">
+      <span class="nav-icon">◉</span> Equipment
+    </div>
+    <div class="nav-item" data-view="radios">
+      <span class="nav-icon">◇</span> Radios
+    </div>
+
+    <div class="sidebar-section">Admin</div>
+    <div class="nav-item" data-view="certifications-dash">
+      <span class="nav-icon">◈</span> Certifications
+      <span class="nav-badge" id="expiry-badge" style="display:none">!</span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+      </div>
+
+      <div class="stats-row" id="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-label">Active Personnel</div>
+          <div class="stat-value" id="stat-personnel">—</div>
+          <div class="stat-sub">Total roster</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Certifications</div>
+          <div class="stat-value" id="stat-certs">—</div>
+          <div class="stat-sub" id="stat-certs-sub">Loading...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Org Assets</div>
+          <div class="stat-value" id="stat-assets">—</div>
+          <div class="stat-sub">Tracked items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Radios Issued</div>
+          <div class="stat-value" id="stat-radios">—</div>
+          <div class="stat-sub">Active assignments</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green-700);margin-bottom:12px">
+            ⚠ Expiring Certifications (60 days)
+          </div>
+          <div class="alert-list" id="expiry-alert-list">
+            <div class="loading-state"><div class="loading-spinner"></div>Loading...</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green-700);margin-bottom:12px">
+            ⚠ Equipment Needing Attention
+          </div>
+          <div class="alert-list" id="equipment-alert-list">
+            <div class="loading-state"><div class="loading-spinner"></div>Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PERSONNEL ==================== -->
+    <div class="view" id="view-personnel">
+      <div class="page-header">
+        <div class="page-title">Personnel Roster</div>
+        <div class="page-count" id="personnel-count">— records</div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" id="toggle-inactive-btn" onclick="toggleInactive()">Show Inactive</button>
+          <button class="btn btn-primary" onclick="openPersonnelModal()">+ Add Member</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="personnel-search" placeholder="Search name, call sign, email..." oninput="filterPersonnel()"/>
+        </div>
+      </div>
+
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Call Sign</th>
+              <th>Phone</th>
+              <th>Blood</th>
+              <th>Certifications</th>
+              <th>County</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="personnel-tbody">
+            <tr><td colspan="8" class="loading-state"><div class="loading-spinner"></div> Loading roster...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== AIR ASSETS ==================== -->
+    <div class="view" id="view-air-assets">
+      <div class="page-header">
+        <div class="page-title">Air Assets</div>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="openAssetModal('air')">+ Add Air Asset</button>
+        </div>
+      </div>
+      <div class="asset-grid" id="air-asset-grid">
+        <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <!-- ==================== WATERCRAFT ==================== -->
+    <div class="view" id="view-watercraft">
+      <div class="page-header">
+        <div class="page-title">Watercraft</div>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="openAssetModal('watercraft')">+ Add Watercraft</button>
+        </div>
+      </div>
+      <div class="asset-grid" id="watercraft-grid">
+        <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <!-- ==================== ORG EQUIPMENT ==================== -->
+    <div class="view" id="view-equipment-org">
+      <div class="page-header">
+        <div class="page-title">Specialized Equipment</div>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="openAssetModal('equipment')">+ Add Equipment</button>
+        </div>
+      </div>
+      <div class="asset-grid" id="equipment-org-grid">
+        <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <!-- ==================== RADIOS ==================== -->
+    <div class="view" id="view-radios">
+      <div class="page-header">
+        <div class="page-title">Radio Inventory</div>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="openAssetModal('radio')">+ Add Radio</button>
+        </div>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Unit ID</th>
+              <th>Model / Name</th>
+              <th>Serial</th>
+              <th>Assigned To</th>
+              <th>Condition</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="radios-tbody">
+            <tr><td colspan="7" class="loading-state"><div class="loading-spinner"></div> Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== CERTIFICATIONS DASH ==================== -->
+    <div class="view" id="view-certifications-dash">
+      <div class="page-header">
+        <div class="page-title">Certification Tracker</div>
+      </div>
+      <div class="filter-bar" style="margin-bottom:16px">
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-right:6px">SHOW EXPIRING WITHIN</label>
+        <select id="expiry-days-select" onchange="loadExpiringCerts()" style="width:120px">
+          <option value="30">30 days</option>
+          <option value="60" selected>60 days</option>
+          <option value="90">90 days</option>
+          <option value="180">180 days</option>
+        </select>
+      </div>
+      <div class="alert-list" id="cert-tracker-list">
+        <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+  </main><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- ==================== PERSONNEL DETAIL PANEL ==================== -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetailPanel()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div class="detail-name" id="detail-name">—</div>
+    <div class="detail-callsign" id="detail-callsign">—</div>
+    <div class="detail-actions">
+      <button class="btn btn-ghost btn-sm" id="detail-edit-btn">Edit</button>
+      <button class="btn btn-danger btn-sm" id="detail-deactivate-btn">Deactivate</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="closeDetailPanel()">✕</button>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body">
+    <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+  </div>
+</div>
+
+<!-- ==================== PERSONNEL MODAL ==================== -->
+<div class="modal-overlay" id="personnel-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="personnel-modal-title">Add Personnel</div>
+      <button class="modal-close" onclick="closePersonnelModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="personnel-form" onsubmit="return false">
+        <input type="hidden" id="pf-id"/>
+        <input type="hidden" id="pf-version"/>
+
+        <div class="form-section">
+          <div class="form-section-title">Identity</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">First Name *</label>
+              <input type="text" id="pf-first" required/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Last Name *</label>
+              <input type="text" id="pf-last" required/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Call Sign</label>
+              <input type="text" id="pf-callsign" placeholder="e.g. ALPHA-1"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" id="pf-dob"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">County of Residence</label>
+              <input type="text" id="pf-county" placeholder="e.g. Schuylkill"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">State</label>
+              <select id="pf-state">
+                <option value="">— Select —</option>
+                <option>PA</option><option>NJ</option><option>NY</option>
+                <option>MD</option><option>DE</option><option>OH</option>
+                <option>WV</option><option>VA</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Contact</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Phone</label>
+              <input type="tel" id="pf-phone" placeholder="570-555-0100"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Email</label>
+              <input type="email" id="pf-email" placeholder="name@krs.org"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Emergency Contact</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Contact Name</label>
+              <input type="text" id="pf-emerg-name"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Contact Phone</label>
+              <input type="tel" id="pf-emerg-phone"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Medical</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Blood Type</label>
+              <select id="pf-blood">
+                <option value="">Unknown</option>
+                <option>A+</option><option>A-</option>
+                <option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option>
+                <option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Allergies</label>
+              <input type="text" id="pf-allergies" placeholder="None known"/>
+            </div>
+            <div class="form-field form-full">
+              <label class="form-label">Medical Notes</label>
+              <textarea id="pf-medical-notes" placeholder="Relevant medical history, conditions, medications..."></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePersonnelModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePersonnel()" id="save-personnel-btn">Save Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ASSET MODAL ==================== -->
+<div class="modal-overlay" id="asset-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="asset-modal-title">Add Asset</div>
+      <button class="modal-close" onclick="closeAssetModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="asset-form" onsubmit="return false">
+        <input type="hidden" id="af-id"/>
+        <input type="hidden" id="af-version"/>
+        <input type="hidden" id="af-category"/>
+
+        <div class="form-section">
+          <div class="form-section-title">Asset Details</div>
+          <div class="form-grid">
+            <div class="form-field form-full">
+              <label class="form-label">Asset Name / Description *</label>
+              <input type="text" id="af-name" required placeholder="e.g. DJI Mavic 3 Enterprise"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Serial Number / ID</label>
+              <input type="text" id="af-serial" placeholder="e.g. SN-12345"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Condition</label>
+              <select id="af-condition">
+                <option value="serviceable">Serviceable</option>
+                <option value="needs_inspection">Needs Inspection</option>
+                <option value="needs_repair">Needs Repair</option>
+                <option value="unserviceable">Unserviceable</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Assigned To (personnel)</label>
+              <select id="af-personnel">
+                <option value="">— Org Pool (unassigned) —</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Assigned Date</label>
+              <input type="date" id="af-assigned-date"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Expiry / Inspection Due</label>
+              <input type="date" id="af-expiry-date"/>
+            </div>
+            <div class="form-field form-full">
+              <label class="form-label">Notes</label>
+              <textarea id="af-notes" placeholder="Registration, license, specs, last service..."></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="asset-delete-btn" style="margin-right:auto;display:none" onclick="deleteAsset()">Delete</button>
+      <button class="btn btn-ghost" onclick="closeAssetModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAsset()">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+// ============================================================
+//  WARDEN — Frontend Application
+// ============================================================
+
+const API = '';  // same origin
+let currentUser = null;
+let allPersonnel = [];
+let showInactive = false;
+let currentPersonId = null;
+let currentAssetCategory = null;
+let currentAssetId = null;
+let orgAssets = [];  // all org-level equipment records
+
+// ============================================================
+//  INIT
+// ============================================================
+
+
+// ============================================================
+//  AUTH
+// ============================================================
+
+function showLogin() { document.getElementById('login-overlay').style.display = 'flex'; }
+function hideLogin() { document.getElementById('login-overlay').style.display = 'none'; }
+
+async function handleLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+
+  errEl.textContent = '';
+  if (!username || !password) {
+    errEl.textContent = 'Username and password are required.';
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const res = await fetch('/api/users/login', {
+      method:      'POST',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Login failed.';
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    if (data.must_change_password) {
+      errEl.textContent = 'Password change required — please log in via BASECAMP first.';
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    currentUser = data;
+    updateTopbarUser(data);
+    hideLogin();
+    await bootApp();
+
+  } catch {
+    errEl.textContent = 'Connection error.';
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+  } catch {}
+  currentUser = null;
+  location.reload();
+}
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/users/me', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data;
+      updateTopbarUser(data);
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function updateTopbarUser(user) {
+  const el = document.getElementById('topbar-user');
+  if (!el || !user) return;
+  const label = (user.role || '').replace('_', ' ').toUpperCase();
+  const name  = (user.username || '').toUpperCase();
+  el.textContent = label + ' · ' + name;
+  el.style.cursor = 'pointer';
+  el.title = 'Click to sign out';
+  el.onclick = handleLogout;
+}
+
+async function bootApp() {
+  await loadDashboard();
+  loadPersonnel();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Nav
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => switchView(item.dataset.view));
+  });
+
+  const authed = await checkAuth();
+  if (authed) {
+    await bootApp();
+  } else {
+    showLogin();
+  }
+});
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+
+function switchView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${viewId}`).classList.add('active');
+  document.querySelector(`[data-view="${viewId}"]`).classList.add('active');
+
+  // Lazy-load views
+  if (viewId === 'personnel') loadPersonnel();
+  if (viewId === 'air-assets') loadOrgAssets('air', 'air-asset-grid');
+  if (viewId === 'watercraft') loadOrgAssets('watercraft', 'watercraft-grid');
+  if (viewId === 'equipment-org') loadOrgAssets('equipment', 'equipment-org-grid');
+  if (viewId === 'radios') loadRadios();
+  if (viewId === 'certifications-dash') loadExpiringCerts();
+}
+
+// ============================================================
+//  API HELPERS
+// ============================================================
+
+async function apiFetch(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      ...opts,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (e) {
+    throw e;
+  }
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+
+async function loadDashboard() {
+  try {
+    const personnel = await apiFetch('/api/personnel/?active=false');
+    const active = personnel.filter(p => p.is_active);
+    document.getElementById('stat-personnel').textContent = active.length;
+
+    // Count all certs across personnel
+    let totalCerts = 0;
+    personnel.forEach(p => {
+      // We'll get a full count from expiring endpoint
+    });
+
+    // Expiring certs
+    const expiring = await apiFetch('/api/certifications/expiring?days=60');
+    const expired = expiring.filter(c => c.expiry_status === 'expired');
+    const soon = expiring.filter(c => c.expiry_status === 'expiring_soon');
+
+    document.getElementById('stat-certs-sub').textContent =
+      `${expired.length} expired · ${soon.length} expiring soon`;
+
+    if (expiring.length > 0) {
+      document.getElementById('expiry-badge').style.display = '';
+      document.getElementById('expiry-badge').textContent = expiring.length;
+    }
+
+    // Render expiry alerts
+    const alertList = document.getElementById('expiry-alert-list');
+    if (expiring.length === 0) {
+      alertList.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-family:var(--font-mono);font-size:11px">All certifications current</div>';
+    } else {
+      alertList.innerHTML = expiring.slice(0, 8).map(c => `
+        <div class="alert-item ${c.expiry_status === 'expired' ? 'expired' : 'soon'}">
+          <div>
+            <div class="alert-person">${c.last_name}, ${c.first_name}</div>
+            <div class="alert-cert">${c.cert_type} · ${c.issuing_body || '—'}</div>
+          </div>
+          <div class="alert-date" style="color:${c.expiry_status === 'expired' ? 'var(--red)' : 'var(--green-700)'}">
+            ${c.expiry_status === 'expired' ? 'EXPIRED' : 'EXP'} ${c.expiry_date}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Equipment alerts
+    const unserviceable = await apiFetch('/api/equipment/unserviceable');
+    const eqList = document.getElementById('equipment-alert-list');
+    if (unserviceable.length === 0) {
+      eqList.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-family:var(--font-mono);font-size:11px">All equipment serviceable</div>';
+    } else {
+      eqList.innerHTML = unserviceable.slice(0, 6).map(e => `
+        <div class="alert-item ${e.condition === 'unserviceable' ? 'expired' : 'soon'}">
+          <div>
+            <div class="alert-person">${e.item_name}</div>
+            <div class="alert-cert">${e.last_name ? `Assigned: ${e.first_name} ${e.last_name}` : 'Org pool'}</div>
+          </div>
+          <div class="alert-date" style="color:${e.condition === 'unserviceable' ? 'var(--red)' : 'var(--green-700)'}">
+            ${e.condition.replace('_', ' ').toUpperCase()}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Asset counts (we'll load them silently)
+    loadOrgAssetsCount();
+
+  } catch(e) {
+    toast('Dashboard load error: ' + e.message, 'error');
+  }
+}
+
+async function loadOrgAssetsCount() {
+  // We can't easily get asset totals without a dedicated endpoint,
+  // so we'll use the equipment unserviceable + a general approach.
+  // For now display placeholder values that will be correct after asset views load.
+  document.getElementById('stat-assets').textContent = '—';
+  document.getElementById('stat-radios').textContent = '—';
+}
+
+// ============================================================
+//  PERSONNEL
+// ============================================================
+
+async function loadPersonnel() {
+  const tbody = document.getElementById('personnel-tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="loading-state"><div class="loading-spinner"></div> Loading...</td></tr>';
+
+  try {
+    const data = await apiFetch(`/api/personnel/?active=${!showInactive}`);
+    allPersonnel = data;
+
+    // Populate asset modal select too
+    const sel = document.getElementById('af-personnel');
+    const existing = sel.querySelector('option[value=""]');
+    sel.innerHTML = '';
+    sel.appendChild(existing || Object.assign(document.createElement('option'), { value:'', textContent:'— Org Pool (unassigned) —' }));
+    data.filter(p => p.is_active).sort((a,b) => a.last_name.localeCompare(b.last_name)).forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = `${p.last_name}, ${p.first_name} (${p.call_sign || '—'})`;
+      sel.appendChild(o);
+    });
+
+    renderPersonnel(data);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:20px;color:var(--red);font-family:var(--font-mono);font-size:11px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderPersonnel(data) {
+  const search = document.getElementById('personnel-search').value.toLowerCase();
+  const filtered = data.filter(p => {
+    if (!search) return true;
+    return (
+      (p.first_name + ' ' + p.last_name).toLowerCase().includes(search) ||
+      (p.call_sign || '').toLowerCase().includes(search) ||
+      (p.email || '').toLowerCase().includes(search)
+    );
+  });
+
+  document.getElementById('personnel-count').textContent = `${filtered.length} records`;
+
+  const tbody = document.getElementById('personnel-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No Personnel Found</div></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const certs = p.certifications || [];
+    const certHtml = certs.length > 0
+      ? `<div class="cert-pills">${certs.slice(0, 4).map(c => {
+          const cls = ['WFR','WEMT','EMT','Paramedic','RN','MD'].includes(c) ? 'medical'
+                    : c.startsWith('FEMA') ? 'ics' : '';
+          return `<span class="cert-pill ${cls}">${c}</span>`;
+        }).join('')}${certs.length > 4 ? `<span class="cert-pill">+${certs.length-4}</span>` : ''}</div>`
+      : '<span style="color:var(--text-muted);font-size:11px">—</span>';
+
+    return `
+      <tr onclick="openDetailPanel('${p.id}')">
+        <td><div class="td-name">${p.last_name}, ${p.first_name}</div></td>
+        <td><div class="td-callsign">${p.call_sign || '—'}</div></td>
+        <td><div class="td-mono">${p.phone || '—'}</div></td>
+        <td><div class="td-mono">${p.blood_type || '—'}</div></td>
+        <td>${certHtml}</td>
+        <td><div class="td-mono">${p.county || '—'}</div></td>
+        <td><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td class="text-right" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openPersonnelModal('${p.id}')">Edit</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterPersonnel() {
+  renderPersonnel(allPersonnel);
+}
+
+function toggleInactive() {
+  showInactive = !showInactive;
+  document.getElementById('toggle-inactive-btn').textContent = showInactive ? 'Hide Inactive' : 'Show Inactive';
+  loadPersonnel();
+}
+
+// ============================================================
+//  PERSONNEL MODAL
+// ============================================================
+
+async function openPersonnelModal(personId = null) {
+  document.getElementById('pf-id').value = '';
+  document.getElementById('pf-version').value = '';
+  document.getElementById('personnel-modal-title').textContent = personId ? 'Edit Personnel' : 'Add Personnel';
+  document.getElementById('save-personnel-btn').textContent = personId ? 'Save Changes' : 'Save Member';
+
+  // Clear fields
+  ['pf-first','pf-last','pf-callsign','pf-dob','pf-county','pf-phone','pf-email',
+   'pf-emerg-name','pf-emerg-phone','pf-allergies','pf-medical-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pf-blood').value = '';
+  document.getElementById('pf-state').value = '';
+
+  if (personId) {
+    try {
+      const p = await apiFetch(`/api/personnel/${personId}`);
+      document.getElementById('pf-id').value = p.id;
+      document.getElementById('pf-version').value = p.version;
+      document.getElementById('pf-first').value = p.first_name || '';
+      document.getElementById('pf-last').value = p.last_name || '';
+      document.getElementById('pf-callsign').value = p.call_sign || '';
+      document.getElementById('pf-dob').value = p.dob || '';
+      document.getElementById('pf-county').value = p.county || '';
+      document.getElementById('pf-phone').value = p.phone || '';
+      document.getElementById('pf-email').value = p.email || '';
+      document.getElementById('pf-emerg-name').value = p.emergency_contact_name || '';
+      document.getElementById('pf-emerg-phone').value = p.emergency_contact_phone || '';
+      document.getElementById('pf-blood').value = p.blood_type || '';
+      document.getElementById('pf-state').value = p.state || '';
+      document.getElementById('pf-allergies').value = p.allergies || '';
+      document.getElementById('pf-medical-notes').value = p.medical_notes || '';
+    } catch(e) {
+      toast('Error loading record: ' + e.message, 'error');
+      return;
+    }
+  }
+
+  document.getElementById('personnel-modal').classList.add('open');
+}
+
+function closePersonnelModal() {
+  document.getElementById('personnel-modal').classList.remove('open');
+}
+
+async function savePersonnel() {
+  const id = document.getElementById('pf-id').value;
+  const version = document.getElementById('pf-version').value;
+
+  const payload = {
+    first_name:               document.getElementById('pf-first').value.trim(),
+    last_name:                document.getElementById('pf-last').value.trim(),
+    call_sign:                document.getElementById('pf-callsign').value.trim(),
+    dob:                      document.getElementById('pf-dob').value || null,
+    county:                   document.getElementById('pf-county').value.trim(),
+    state:                    document.getElementById('pf-state').value,
+    phone:                    document.getElementById('pf-phone').value.trim(),
+    email:                    document.getElementById('pf-email').value.trim(),
+    emergency_contact_name:   document.getElementById('pf-emerg-name').value.trim(),
+    emergency_contact_phone:  document.getElementById('pf-emerg-phone').value.trim(),
+    blood_type:               document.getElementById('pf-blood').value,
+    allergies:                document.getElementById('pf-allergies').value.trim(),
+    medical_notes:            document.getElementById('pf-medical-notes').value.trim(),
+  };
+
+  if (!payload.first_name || !payload.last_name) {
+    toast('First and last name are required', 'error');
+    return;
+  }
+
+  try {
+    if (id) {
+      payload.version = parseInt(version);
+      await apiFetch(`/api/personnel/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      toast('Personnel record updated');
+    } else {
+      await apiFetch('/api/personnel/', { method: 'POST', body: JSON.stringify(payload) });
+      toast('Personnel record created');
+    }
+    closePersonnelModal();
+    closeDetailPanel();
+    loadPersonnel();
+    loadDashboard();
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  DETAIL PANEL
+// ============================================================
+
+async function openDetailPanel(personId) {
+  currentPersonId = personId;
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-name').textContent = '—';
+  document.getElementById('detail-callsign').textContent = 'Loading...';
+  document.getElementById('detail-body').innerHTML = '<div class="loading-state"><div class="loading-spinner"></div> Loading...</div>';
+
+  try {
+    const p = await apiFetch(`/api/personnel/${personId}`);
+
+    document.getElementById('detail-name').textContent = `${p.last_name}, ${p.first_name}`;
+    document.getElementById('detail-callsign').textContent = p.call_sign || 'No call sign assigned';
+
+    document.getElementById('detail-edit-btn').onclick = () => openPersonnelModal(personId);
+    document.getElementById('detail-deactivate-btn').textContent = p.is_active ? 'Deactivate' : 'Reactivate';
+    document.getElementById('detail-deactivate-btn').onclick = () => p.is_active ? deactivatePerson(personId) : reactivatePerson(personId);
+
+    const certs = p.certifications || [];
+    const deployments = p.deployments || [];
+    const equipment = p.equipment || [];
+
+    document.getElementById('detail-body').innerHTML = `
+      <!-- Identity -->
+      <div class="detail-section">
+        <div class="detail-section-title">Identity</div>
+        <div class="detail-grid">
+          <div>
+            <div class="detail-field-label">Status</div>
+            <div class="detail-field-value">
+              <span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span>
+            </div>
+          </div>
+          <div>
+            <div class="detail-field-label">Date of Birth</div>
+            <div class="detail-field-value">${p.dob || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">County</div>
+            <div class="detail-field-value">${p.county || '—'}${p.state ? ', ' + p.state : ''}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Blood Type</div>
+            <div class="detail-field-value mono">${p.blood_type || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Phone</div>
+            <div class="detail-field-value">${p.phone || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Email</div>
+            <div class="detail-field-value" style="font-size:12px">${p.email || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Allergies</div>
+            <div class="detail-field-value">${p.allergies || 'None known'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Total Deployments</div>
+            <div class="detail-field-value mono">${deployments.length}</div>
+          </div>
+        </div>
+        ${p.medical_notes ? `
+          <div style="margin-top:10px">
+            <div class="detail-field-label">Medical Notes</div>
+            <div style="margin-top:4px;font-size:12px;color:var(--text-secondary);padding:8px;background:var(--bg-card);border:1px solid var(--border)">${p.medical_notes}</div>
+          </div>` : ''}
+      </div>
+
+      <!-- Emergency Contact -->
+      <div class="detail-section">
+        <div class="detail-section-title">Emergency Contact</div>
+        <div class="detail-grid">
+          <div>
+            <div class="detail-field-label">Name</div>
+            <div class="detail-field-value">${p.emergency_contact_name || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-field-label">Phone</div>
+            <div class="detail-field-value">${p.emergency_contact_phone || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certifications -->
+      <div class="detail-section">
+        <div class="detail-section-title" style="display:flex;align-items:center;gap:8px">
+          Certifications
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="toggleAddCertForm()">+ Add Cert</button>
+        </div>
+
+        <div class="add-cert-form" id="add-cert-form">
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Cert Type</label>
+              <select id="new-cert-type">
+                ${CERT_TYPES.map(t => `<option>${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Cert Number</label>
+              <input type="text" id="new-cert-number"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Issuing Body</label>
+              <input type="text" id="new-cert-issuer"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Issue Date</label>
+              <input type="date" id="new-cert-issued"/>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Expiry Date</label>
+              <input type="date" id="new-cert-expiry"/>
+            </div>
+            <div class="form-field" style="align-self:end">
+              <button class="btn btn-primary btn-sm" onclick="addCert('${p.id}')">Save Cert</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cert-list" id="cert-list">
+          ${certs.length === 0
+            ? '<div style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">No certifications on file</div>'
+            : certs.map(c => {
+                const today = new Date().toISOString().split('T')[0];
+                const expired = c.expiry_date && c.expiry_date < today;
+                return `
+                  <div class="cert-row">
+                    <div class="cert-type">${c.cert_type}</div>
+                    <div class="cert-expiry">${c.issuing_body || ''} ${c.expiry_date ? '· Exp ' + c.expiry_date : ''}</div>
+                    ${expired ? '<span class="badge badge-danger">Expired</span>' : c.is_verified ? '<span class="badge badge-active">Verified</span>' : '<span class="badge badge-warn">Unverified</span>'}
+                    <div class="cert-actions">
+                      ${!c.is_verified ? `<button class="btn btn-ghost btn-sm" onclick="verifyCert('${c.id}','${p.id}')">Verify</button>` : ''}
+                      <button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}','${p.id}')">✕</button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+        </div>
+      </div>
+
+      <!-- Assigned Equipment -->
+      <div class="detail-section">
+        <div class="detail-section-title">Assigned Equipment</div>
+        ${equipment.length === 0
+          ? '<div style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">No equipment assigned</div>'
+          : `<div class="cert-list">${equipment.map(e => `
+              <div class="cert-row">
+                <div class="cert-type">${e.item_name}</div>
+                <div class="cert-expiry">${e.serial_number || ''}</div>
+                <span class="badge ${e.condition === 'serviceable' ? 'badge-active' : e.condition === 'unserviceable' ? 'badge-danger' : 'badge-warn'}">${e.condition.replace('_',' ')}</span>
+              </div>`).join('')}
+            </div>`}
+      </div>
+
+      <!-- Recent Deployments -->
+      <div class="detail-section">
+        <div class="detail-section-title">Deployment History</div>
+        ${deployments.length === 0
+          ? '<div style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">No deployments on record</div>'
+          : `<div class="cert-list">${deployments.slice(0,5).map(d => `
+              <div class="cert-row">
+                <div>
+                  <div class="cert-type">${d.incident_name}</div>
+                  <div class="cert-expiry">${d.incident_number} · ${d.role}</div>
+                </div>
+                <div class="cert-expiry">${(d.checked_in_at || '').slice(0,10)}</div>
+              </div>`).join('')}
+            </div>`}
+      </div>
+    `;
+  } catch(e) {
+    document.getElementById('detail-body').innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+  }
+}
+
+function closeDetailPanel() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');
+  currentPersonId = null;
+}
+
+async function deactivatePerson(id) {
+  if (!confirm('Deactivate this personnel record? They will be removed from the active roster.')) return;
+  try {
+    await apiFetch(`/api/personnel/${id}/deactivate`, { method: 'POST' });
+    toast('Personnel record deactivated', 'warn');
+    closeDetailPanel();
+    loadPersonnel();
+    loadDashboard();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function reactivatePerson(id) {
+  try {
+    await apiFetch(`/api/personnel/${id}/reactivate`, { method: 'POST' });
+    toast('Personnel record reactivated');
+    closeDetailPanel();
+    loadPersonnel();
+    loadDashboard();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  CERTIFICATIONS
+// ============================================================
+
+const CERT_TYPES = [
+  'WFR','WEMT','EMT','Paramedic','RN','MD','CPR','First Aid',
+  'FEMA_ICS_100','FEMA_ICS_200','FEMA_ICS_300','FEMA_ICS_400',
+  'FEMA_IS_700','FEMA_IS_800','Swift_Water','Rope_Rescue',
+  'K9_Handler','Ham_Radio','Other'
+];
+
+function toggleAddCertForm() {
+  document.getElementById('add-cert-form').classList.toggle('open');
+}
+
+async function addCert(personId) {
+  const payload = {
+    personnel_id: personId,
+    cert_type:    document.getElementById('new-cert-type').value,
+    cert_number:  document.getElementById('new-cert-number').value.trim() || null,
+    issuing_body: document.getElementById('new-cert-issuer').value.trim() || null,
+    issued_date:  document.getElementById('new-cert-issued').value || null,
+    expiry_date:  document.getElementById('new-cert-expiry').value || null,
+    is_verified:  false,
+  };
+
+  try {
+    await apiFetch('/api/certifications/', { method: 'POST', body: JSON.stringify(payload) });
+    toast('Certification added');
+    openDetailPanel(personId);  // refresh
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function verifyCert(certId, personId) {
+  try {
+    await apiFetch(`/api/certifications/${certId}/verify`, { method: 'POST' });
+    toast('Certification verified');
+    openDetailPanel(personId);
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteCert(certId, personId) {
+  if (!confirm('Remove this certification record?')) return;
+  try {
+    await apiFetch(`/api/certifications/${certId}`, { method: 'DELETE' });
+    toast('Certification removed', 'warn');
+    openDetailPanel(personId);
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function loadExpiringCerts() {
+  const days = document.getElementById('expiry-days-select').value;
+  const list = document.getElementById('cert-tracker-list');
+  list.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div> Loading...</div>';
+
+  try {
+    const data = await apiFetch(`/api/certifications/expiring?days=${days}`);
+    if (data.length === 0) {
+      list.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-family:var(--font-mono);font-size:11px">No certifications expiring in this window</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => `
+      <div class="alert-item ${c.expiry_status === 'expired' ? 'expired' : 'soon'}">
+        <div>
+          <div class="alert-person">${c.last_name}, ${c.first_name} <span style="font-size:11px;color:var(--green-700)">${c.call_sign || ''}</span></div>
+          <div class="alert-cert">${c.cert_type} · ${c.issuing_body || '—'} · ${c.cert_number || '—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="alert-date" style="color:${c.expiry_status === 'expired' ? 'var(--red)' : 'var(--green-700)'}">
+            ${c.expiry_status === 'expired' ? '⚠ EXPIRED' : '⚠ EXPIRING'}</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${c.expiry_date}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+  }
+}
+
+// ============================================================
+//  ASSET MANAGEMENT
+//  We use the equipment API but scope org assets by personnel_id = null
+//  and by a naming convention in item_name for category filtering.
+//  Categories: [AIR] [WATERCRAFT] [EQUIPMENT] [RADIO]
+// ============================================================
+
+const ASSET_ICONS = {
+  air:        '✈',
+  watercraft: '⛵',
+  equipment:  '⚙',
+  radio:      '📻',
+};
+
+const ASSET_LABELS = {
+  air:        'Air Asset',
+  watercraft: 'Watercraft',
+  equipment:  'Specialized Equipment',
+  radio:      'Radio',
+};
+
+function categoryPrefix(cat) {
+  return `[${cat.toUpperCase()}] `;
+}
+
+function parseCategoryFromName(name) {
+  if (!name) return 'equipment';
+  if (name.startsWith('[AIR]')) return 'air';
+  if (name.startsWith('[WATERCRAFT]')) return 'watercraft';
+  if (name.startsWith('[RADIO]')) return 'radio';
+  if (name.startsWith('[EQUIPMENT]')) return 'equipment';
+  return 'equipment';
+}
+
+function cleanAssetName(name) {
+  return (name || '').replace(/^\[.*?\]\s*/, '');
+}
+
+async function loadAllOrgAssets() {
+  // Equipment with no personnel_id is org-pool — but our API is personnel-scoped.
+  // We use the unserviceable endpoint as a workaround for total count,
+  // and for full lists we'd need a dedicated endpoint.
+  // For now: load from unserviceable + a known org person sentinel.
+  // PRACTICAL approach: store org assets with personnel_id = 'ORG'
+  // Since the API validates personnel_id against the table, we store them
+  // under a special "ORG POOL" personnel record, or we bypass with direct
+  // calls using a sentinel. For this UI we'll load all unserviceable + serviceable
+  // by fetching per-category from the item_name prefix pattern.
+  // Since the backend filters by personnel_id, the cleanest approach is to
+  // add a sentinel ORG personnel record. For now we surface what we can.
+  return [];
+}
+
+async function loadOrgAssets(category, gridId) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div> Loading...</div>';
+
+  try {
+    // Fetch all unserviceable to get IDs, then we need org assets.
+    // Since we tag item_name with [CATEGORY], we can scan equipment records.
+    // The equipment API is per-personnel, so we fetch all personnel's equipment
+    // and filter. This is not ideal but works without a schema change.
+    const personnel = allPersonnel.length > 0 ? allPersonnel : await apiFetch('/api/personnel/?active=false');
+    if (!allPersonnel.length) allPersonnel = personnel;
+
+    let assets = [];
+    // Also check unserviceable (org-level)
+    const unserviceable = await apiFetch('/api/equipment/unserviceable');
+    const unservIds = new Set(unserviceable.map(e => e.id));
+
+    // Gather equipment from all personnel for org items tagged with our prefix
+    for (const p of personnel.slice(0, 20)) { // limit API calls for now
+      try {
+        const items = await apiFetch(`/api/equipment/personnel/${p.id}`);
+        items.forEach(item => {
+          if (parseCategoryFromName(item.item_name) === category) {
+            item._person = p;
+            assets.push(item);
+          }
+        });
+      } catch(e) {}
+    }
+
+    // Also scan unserviceable for org items
+    unserviceable.forEach(item => {
+      if (parseCategoryFromName(item.item_name) === category && !assets.find(a => a.id === item.id)) {
+        assets.push(item);
+      }
+    });
+
+    // Update global count
+    document.getElementById('stat-assets').textContent = assets.length || '—';
+
+    if (assets.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1">
+          <div class="empty-state">
+            <div class="empty-icon">${ASSET_ICONS[category]}</div>
+            <div class="empty-title">No ${ASSET_LABELS[category]}s on Record</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = assets.map(a => {
+      const name = cleanAssetName(a.item_name);
+      const condClass = a.condition === 'serviceable' ? 'badge-active'
+                      : a.condition === 'unserviceable' ? 'badge-danger' : 'badge-warn';
+      return `
+        <div class="asset-card" onclick="openAssetModal('${category}', '${a.id}')">
+          <span class="asset-category-icon">${ASSET_ICONS[category]}</span>
+          <div class="asset-name">${name}</div>
+          <div class="asset-serial">${a.serial_number || 'No serial number'}</div>
+          <div class="asset-meta">
+            <span class="badge ${condClass}">${a.condition.replace('_',' ')}</span>
+            ${a._person ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">→ ${a._person.last_name}</span>` : ''}
+          </div>
+          ${a.notes ? `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">${a.notes}</div>` : ''}
+          ${a.expiry_date ? `<div style="margin-top:6px;font-family:var(--font-mono);font-size:10px;color:${a.expiry_status === 'expired' ? 'var(--red)' : a.expiry_status === 'expiring_soon' ? 'var(--green-700)' : 'var(--text-muted)'}">
+            ${a.expiry_status === 'expired' ? '⚠ EXPIRED' : 'INSP/EXP'} ${a.expiry_date}
+          </div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+  } catch(e) {
+    grid.innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error loading assets: ${e.message}</div>`;
+  }
+}
+
+async function loadRadios() {
+  const tbody = document.getElementById('radios-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><div class="loading-spinner"></div> Loading...</td></tr>';
+
+  try {
+    const personnel = allPersonnel.length > 0 ? allPersonnel : await apiFetch('/api/personnel/?active=false');
+    if (!allPersonnel.length) allPersonnel = personnel;
+
+    let radios = [];
+    for (const p of personnel.slice(0, 20)) {
+      try {
+        const items = await apiFetch(`/api/equipment/personnel/${p.id}`);
+        items.forEach(item => {
+          if (parseCategoryFromName(item.item_name) === 'radio') {
+            item._person = p;
+            radios.push(item);
+          }
+        });
+      } catch(e) {}
+    }
+
+    document.getElementById('stat-radios').textContent = radios.length || '0';
+
+    if (radios.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📻</div><div class="empty-title">No Radios on Record</div></div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = radios.map((r, i) => {
+      const name = cleanAssetName(r.item_name);
+      const condClass = r.condition === 'serviceable' ? 'badge-active'
+                      : r.condition === 'unserviceable' ? 'badge-danger' : 'badge-warn';
+      return `
+        <tr onclick="openAssetModal('radio', '${r.id}')">
+          <td><div class="td-mono">RADIO-${String(i+1).padStart(3,'0')}</div></td>
+          <td><div class="td-name" style="font-size:14px">${name}</div></td>
+          <td><div class="td-mono">${r.serial_number || '—'}</div></td>
+          <td>
+            ${r._person
+              ? `<div class="td-name" style="font-size:13px">${r._person.last_name}, ${r._person.first_name}</div>
+                 <div class="td-callsign" style="font-size:10px">${r._person.call_sign || ''}</div>`
+              : '<span style="color:var(--text-muted);font-size:11px">Unassigned</span>'}
+          </td>
+          <td><span class="badge ${condClass}">${r.condition.replace('_',' ')}</span></td>
+          <td><div style="font-size:12px;color:var(--text-secondary)">${r.notes || '—'}</div></td>
+          <td class="text-right" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="openAssetModal('radio', '${r.id}')">Edit</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ============================================================
+//  ASSET MODAL
+// ============================================================
+
+async function openAssetModal(category, assetId = null) {
+  currentAssetCategory = category;
+  currentAssetId = assetId;
+
+  document.getElementById('asset-modal-title').textContent = assetId
+    ? `Edit ${ASSET_LABELS[category]}`
+    : `Add ${ASSET_LABELS[category]}`;
+
+  document.getElementById('af-id').value = '';
+  document.getElementById('af-version').value = '';
+  document.getElementById('af-category').value = category;
+  document.getElementById('af-name').value = '';
+  document.getElementById('af-serial').value = '';
+  document.getElementById('af-condition').value = 'serviceable';
+  document.getElementById('af-personnel').value = '';
+  document.getElementById('af-assigned-date').value = '';
+  document.getElementById('af-expiry-date').value = '';
+  document.getElementById('af-notes').value = '';
+  document.getElementById('asset-delete-btn').style.display = 'none';
+
+  if (assetId) {
+    // Find asset in our loaded data
+    // We need to fetch it — try equipment endpoint by scanning personnel
+    // In a real implementation, we'd have GET /api/equipment/<id>
+    // For now we'll load from detail view pattern
+    document.getElementById('asset-delete-btn').style.display = '';
+  }
+
+  document.getElementById('asset-modal').classList.add('open');
+}
+
+function closeAssetModal() {
+  document.getElementById('asset-modal').classList.remove('open');
+  currentAssetId = null;
+  currentAssetCategory = null;
+}
+
+async function saveAsset() {
+  const category = document.getElementById('af-category').value;
+  const personnelId = document.getElementById('af-personnel').value;
+  const name = document.getElementById('af-name').value.trim();
+
+  if (!name) {
+    toast('Asset name is required', 'error');
+    return;
+  }
+
+  if (!personnelId) {
+    toast('Please assign this asset to a personnel record.\n\nTip: Create an "ORG POOL" personnel record to hold unassigned org assets.', 'warn');
+    return;
+  }
+
+  const payload = {
+    personnel_id:  personnelId,
+    item_name:     categoryPrefix(category) + name,
+    serial_number: document.getElementById('af-serial').value.trim() || null,
+    condition:     document.getElementById('af-condition').value,
+    assigned_date: document.getElementById('af-assigned-date').value || null,
+    expiry_date:   document.getElementById('af-expiry-date').value || null,
+    notes:         document.getElementById('af-notes').value.trim() || null,
+  };
+
+  try {
+    if (currentAssetId) {
+      const ver = parseInt(document.getElementById('af-version').value);
+      payload.version = ver;
+      await apiFetch(`/api/equipment/${currentAssetId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      toast('Asset updated');
+    } else {
+      await apiFetch('/api/equipment/', { method: 'POST', body: JSON.stringify(payload) });
+      toast('Asset added');
+    }
+    closeAssetModal();
+    // Refresh the current view
+    if (category === 'air') loadOrgAssets('air', 'air-asset-grid');
+    else if (category === 'watercraft') loadOrgAssets('watercraft', 'watercraft-grid');
+    else if (category === 'equipment') loadOrgAssets('equipment', 'equipment-org-grid');
+    else if (category === 'radio') loadRadios();
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
+async function deleteAsset() {
+  if (!currentAssetId) return;
+  if (!confirm('Remove this asset record? This cannot be undone.')) return;
+  try {
+    await apiFetch(`/api/equipment/${currentAssetId}`, { method: 'DELETE' });
+    toast('Asset removed', 'warn');
+    closeAssetModal();
+    const cat = currentAssetCategory;
+    if (cat === 'air') loadOrgAssets('air', 'air-asset-grid');
+    else if (cat === 'watercraft') loadOrgAssets('watercraft', 'watercraft-grid');
+    else if (cat === 'equipment') loadOrgAssets('equipment', 'equipment-org-grid');
+    else if (cat === 'radio') loadRadios();
+  } catch(e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  THEME TOGGLE
+// ============================================================
+(function() {
+  const saved = localStorage.getItem('sarpack-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeBtn(saved);
+})();
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sarpack-theme', next);
+  updateThemeBtn(next);
+}
+
+function updateThemeBtn(theme) {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  btn.textContent = theme === 'dark' ? '◑ THEME' : '● THEME';
+}
+
+</script>
+
+<!-- =========================================================
+     LOGIN OVERLAY
+========================================================= -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="login-icon">🛡️</span>
+      <span class="login-title">WARDEN</span>
+      <span class="login-subtitle">SARPack Personnel & Asset Administration</span>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Enter username"
+             autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Enter password"
+             autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') handleLogin()"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn"
+            onclick="handleLogin()">Sign In</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+</body>
+</html>

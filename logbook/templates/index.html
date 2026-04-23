@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LOGBOOK — SARPack ICS Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-base:       #0b0d0f;
+  --bg-panel:      #111418;
+  --bg-card:       #161b20;
+  --bg-hover:      #1c2229;
+  --bg-input:      #0e1215;
+  --border:        #1f2830;
+  --border-bright: #2e3d4a;
+  --accent:        #00e676;
+  --accent-dim:    #003d1f;
+  --accent-glow:   rgba(0,230,118,0.10);
+  --green:         #00e676;
+  --green-dim:     #003d1f;
+  --amber:         #e8a020;
+  --amber-dim:     #3d2800;
+  --amber-glow:    rgba(232,160,32,0.12);
+  --red:           #e05252;
+  --red-dim:       #3d1010;
+  --blue:          #3a9fd8;
+  --blue-dim:      #0d2d42;
+  --text-primary:  #d4dce6;
+  --text-secondary:#6e8499;
+  --text-muted:    #3d5268;
+  --font-display:  'Rajdhani', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+  --font-body:     'Source Sans 3', sans-serif;
+  --radius:        2px;
+  --transition:    0.15s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); font-size: 15px; line-height: 1.6; overflow: hidden; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.app-shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 52px 1fr; height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  grid-column: 1/-1;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+  position: relative;
+}
+.topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 60%); opacity: 0.5;
+}
+.topbar-logo { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: 4px; color: var(--accent); }
+.topbar-sub { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 2px; border-left: 1px solid var(--border-bright); padding-left: 16px; }
+.topbar-spacer { flex: 1; }
+.topbar-status { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.topbar-user { font-family: var(--font-mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent-dim); padding: 4px 10px; letter-spacing: 1px; }
+
+/* SIDEBAR */
+.sidebar { background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0; overflow-y: auto; }
+.sidebar-section { padding: 8px 16px 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-top: 8px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; transition: all var(--transition); border-left: 2px solid transparent; font-family: var(--font-display); font-size: 16px; font-weight: 500; letter-spacing: 1px; color: var(--text-secondary); user-select: none; }
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active { background: var(--accent-glow); border-left-color: var(--accent); color: var(--accent); }
+.nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--amber-dim); color: var(--amber); font-family: var(--font-mono); font-size: 10px; padding: 1px 5px; border: 1px solid var(--amber); }
+
+/* MAIN */
+.main-content { overflow-y: auto; display: flex; flex-direction: column; }
+.view { display: none; padding: 24px; flex-direction: column; gap: 20px; }
+.view.active { display: flex; }
+
+/* PAGE HEADER */
+.page-header { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.page-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.page-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* BUTTONS */
+.btn { font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; padding: 8px 16px; border: 1px solid; cursor: pointer; transition: all var(--transition); border-radius: var(--radius); white-space: nowrap; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #000; }
+.btn-primary:hover { background: #33ff8a; }
+.btn-ghost { background: transparent; border-color: var(--border-bright); color: var(--text-secondary); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; border-color: var(--red-dim); color: var(--red); }
+.btn-danger:hover { background: var(--red-dim); }
+.btn-amber { background: transparent; border-color: var(--amber-dim); color: var(--amber); }
+.btn-amber:hover { background: var(--amber-dim); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* BADGES */
+.badge { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; border: 1px solid; }
+.badge-active  { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-glow); }
+.badge-warn    { color: var(--amber); border-color: var(--amber-dim); background: var(--amber-glow); }
+.badge-danger  { color: var(--red); border-color: var(--red-dim); background: rgba(224,82,82,0.08); }
+.badge-muted   { color: var(--text-muted); border-color: var(--border); }
+.badge-blue    { color: var(--blue); border-color: var(--blue-dim); background: rgba(58,159,216,0.08); }
+
+/* STAT CARDS */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 16px 18px; position: relative; overflow: hidden; }
+.stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.3s; }
+.stat-card:hover::after { transform: scaleX(1); }
+.stat-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+.stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--accent); line-height: 1; }
+.stat-sub { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* DATA TABLE */
+.data-table-wrap { background: var(--bg-panel); border: 1px solid var(--border); overflow: hidden; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table thead th { background: var(--bg-card); font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 400; white-space: nowrap; }
+.data-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); cursor: pointer; }
+.data-table tbody tr:hover { background: var(--bg-hover); }
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody td { padding: 12px 14px; font-size: 14px; vertical-align: middle; }
+.td-primary { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.td-mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.td-accent { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
+
+/* PANEL */
+.panel { background: var(--bg-panel); border: 1px solid var(--border); overflow: hidden; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.panel-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 400; }
+.panel-body { padding: 16px; }
+
+/* FORM CARDS (ICS grid) */
+.ics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ics-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 16px; cursor: pointer; transition: all var(--transition); position: relative; overflow: hidden; }
+.ics-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--border); transition: background var(--transition); }
+.ics-card:hover { border-color: var(--border-bright); }
+.ics-card.status-green::before { background: var(--accent); }
+.ics-card.status-yellow::before { background: var(--amber); }
+.ics-card.status-red::before { background: var(--red); }
+.ics-card.status-signed::before { background: var(--accent); }
+.ics-card.status-none::before { background: var(--text-muted); }
+.ics-card:hover::before { filter: brightness(1.3); }
+.ics-number { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.ics-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.ics-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
+.ics-footer { display: flex; align-items: center; justify-content: space-between; }
+
+/* INCIDENT HISTORY CARD */
+.incident-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 16px 18px; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 16px; }
+.incident-card:hover { background: var(--bg-hover); border-color: var(--border-bright); }
+.incident-card-left { flex: 1; }
+.incident-number { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); margin-bottom: 2px; }
+.incident-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.incident-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.incident-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+/* LIBRARY CARDS */
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.lib-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 16px; cursor: pointer; transition: all var(--transition); }
+.lib-card:hover { border-color: var(--accent); background: var(--accent-glow); }
+.lib-form-number { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; letter-spacing: 1px; }
+.lib-form-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.lib-form-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px; }
+.lib-form-fields { display: flex; flex-wrap: wrap; gap: 4px; }
+.lib-field-tag { font-family: var(--font-mono); font-size: 10px; padding: 2px 6px; border: 1px solid var(--border-bright); color: var(--text-muted); }
+
+/* CONTACT / EMA SEARCH */
+.ema-search-bar { display: flex; gap: 8px; align-items: center; }
+.ema-results { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.ema-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 16px; }
+.ema-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.ema-detail { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.ema-detail a { color: var(--accent); text-decoration: none; }
+.ema-detail a:hover { text-decoration: underline; }
+
+.fema-contacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.fema-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 16px; position: relative; overflow: hidden; }
+.fema-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--blue), transparent); }
+.fema-org { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+.fema-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.fema-detail { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--text-secondary); }
+.fema-detail-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); min-width: 50px; padding-top: 2px; }
+.fema-detail-value a { color: var(--accent); text-decoration: none; }
+.fema-detail-value a:hover { text-decoration: underline; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg-panel); border: 1px solid var(--border-bright); width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.6); position: relative; }
+.modal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); }
+.modal-header { display: flex; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border); gap: 12px; flex-shrink: 0; }
+.modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.modal-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.modal-close:hover { color: var(--text-primary); }
+.modal-body { overflow-y: auto; padding: 22px; flex: 1; }
+.modal-footer { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+
+/* FORM DETAIL in modal */
+.form-detail-section { margin-bottom: 20px; }
+.form-detail-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.form-field-row { display: grid; grid-template-columns: 160px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: start; }
+.form-field-row:last-child { border-bottom: none; }
+.field-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); padding-top: 2px; }
+.field-value { font-size: 13px; color: var(--text-primary); }
+.field-value.empty { color: var(--text-muted); font-style: italic; }
+
+/* narrative textarea */
+textarea.narrative-input { background: var(--bg-input); border: 1px solid var(--border-bright); color: var(--text-primary); font-family: var(--font-body); font-size: 13px; padding: 8px 12px; width: 100%; resize: vertical; min-height: 80px; outline: none; }
+textarea.narrative-input:focus { border-color: var(--accent); }
+input.field-input { background: var(--bg-input); border: 1px solid var(--border-bright); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; width: 100%; outline: none; }
+input.field-input:focus { border-color: var(--accent); }
+
+/* validation summary */
+.val-bar { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border); margin-bottom: 16px; }
+.val-chip { font-family: var(--font-mono); font-size: 12px; padding: 3px 10px; border: 1px solid; }
+.val-red    { color: var(--red);   border-color: var(--red-dim);   background: rgba(224,82,82,0.08); }
+.val-yellow { color: var(--amber); border-color: var(--amber-dim); background: var(--amber-glow); }
+.val-green  { color: var(--accent);border-color: var(--accent-dim);background: var(--accent-glow); }
+.val-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); letter-spacing: 1px; margin-right: auto; }
+
+/* LOADING / EMPTY */
+.loading-state { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; letter-spacing: 1.5px; }
+.loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border-bright); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+.empty-title { font-family: var(--font-display); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); }
+
+/* TOAST */
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { font-family: var(--font-mono); font-size: 13px; padding: 10px 16px; border: 1px solid; min-width: 260px; animation: slideIn 0.2s ease; }
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+.toast-success { background: var(--bg-panel); border-color: var(--accent); color: var(--accent); }
+.toast-error   { background: var(--bg-panel); border-color: var(--red); color: var(--red); }
+.toast-warn    { background: var(--bg-panel); border-color: var(--amber); color: var(--amber); }
+
+/* SEARCH INPUT */
+input[type="text"], input[type="number"], input[type="password"], select {
+  background: var(--bg-input); border: 1px solid var(--border-bright); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 13px; padding: 8px 12px; outline: none; transition: border-color var(--transition);
+}
+input:focus, select:focus { border-color: var(--accent); }
+select option { background: var(--bg-panel); }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+/* ---- Login overlay ---- */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.login-overlay::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+}
+.login-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 360px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 1;
+}
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 70%);
+}
+.login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+  gap: 4px;
+}
+.login-icon { font-size: 36px; line-height: 1; }
+.login-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+.login-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.form-group {
+  margin-bottom: 14px;
+  width: 100%;
+}
+.form-group label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+.form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-bright);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+.form-group input:focus { border-color: var(--accent); }
+.form-group input::placeholder { color: var(--text-muted); }
+.btn-full { width: 100%; justify-content: center; display: flex; }
+.error-msg {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber);
+  margin-top: 8px;
+  min-height: 18px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   LIGHT THEME OVERRIDES
+   Applied via [data-theme="light"] on <html>
+   ============================================================ */
+[data-theme="light"] {
+  --bg-base:       #f4f6f8;
+  --bg-panel:      #ffffff;
+  --bg-card:       #f0f2f5;
+  --bg-hover:      #eaf7f0;
+  --bg-input:      #ffffff;
+  --border:        #d8dee6;
+  --border-bright: #b8c4cc;
+  --text-primary:  #0d1117;
+  --text-secondary:#3a4a5a;
+  --text-muted:    #7a8fa0;
+  /* accent stays bright green */
+  --accent:        #00a855;
+  --accent-dim:    #d0f0e0;
+  --accent-glow:   rgba(0,168,85,0.10);
+  --green:         #00a855;
+  --green-dim:     #d0f0e0;
+  --green-700:     #00a855;
+  --green-800:     #007a3d;
+  --green-50:      rgba(0,168,85,0.06);
+  --green-100:     rgba(0,168,85,0.12);
+}
+
+[data-theme="light"] body::before { opacity: 0; }
+
+[data-theme="light"] .topbar {
+  background: #1a2e1a;
+  border-bottom-color: #2a4a2a;
+}
+[data-theme="light"] .topbar::after {
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+}
+[data-theme="light"] .topbar-logo { color: #00e676; }
+[data-theme="light"] .topbar-sub  { color: rgba(255,255,255,0.45); border-left-color: rgba(255,255,255,0.2); }
+[data-theme="light"] .topbar-status { color: rgba(255,255,255,0.6); }
+[data-theme="light"] .topbar-user  { color: #00e676; border-color: rgba(0,230,118,0.4); }
+[data-theme="light"] #theme-toggle { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
+[data-theme="light"] #theme-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+[data-theme="light"] .sidebar { background: #ffffff; border-right-color: var(--border); }
+[data-theme="light"] .nav-item { color: #3a4a5a; }
+[data-theme="light"] .nav-item:hover { background: #eaf7f0; color: #0d1117; }
+[data-theme="light"] .nav-item.active { background: rgba(0,168,85,0.10); border-left-color: var(--accent); color: var(--accent); }
+
+[data-theme="light"] .data-table thead th { background: #f0f2f5; }
+[data-theme="light"] .data-table tbody tr:hover { background: #eaf7f0; }
+
+[data-theme="light"] .modal { box-shadow: 0 24px 64px rgba(0,0,0,0.25); }
+[data-theme="light"] .login-card { box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+
+[data-theme="light"] select option { background: #ffffff; color: #0d1117; }
+
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">LOGBOOK</div>
+    <div class="topbar-sub">ICS Form Management &amp; Operations Record</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-status"><div class="status-dot"></div><span>ONLINE · LOCAL MODE</span></div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
+    <div class="topbar-user" id="topbar-user">IC · ADMIN</div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Operations</div>
+    <div class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span> Dashboard</div>
+    <div class="nav-item" data-view="history"><span class="nav-icon">◉</span> Incident History</div>
+
+    <div class="sidebar-section">Forms</div>
+    <div class="nav-item" data-view="forms"><span class="nav-icon">◇</span> Active Forms</div>
+    <div class="nav-item" data-view="library"><span class="nav-icon">◈</span> ICS Library</div>
+
+    <div class="sidebar-section">Resources</div>
+    <div class="nav-item" data-view="contacts"><span class="nav-icon">◉</span> FEMA &amp; EMA</div>
+    <div class="nav-item" data-view="glossary"><span class="nav-icon">◇</span> ICS Glossary</div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Incidents</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Incidents</div>
+          <div class="stat-value" id="stat-active">—</div>
+          <div class="stat-sub">Forms in progress</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Forms Signed</div>
+          <div class="stat-value" id="stat-signed">—</div>
+          <div class="stat-sub">Completed packets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending Signature</div>
+          <div class="stat-value" id="stat-pending" style="color:var(--amber)">—</div>
+          <div class="stat-sub">Awaiting IC sign-off</div>
+        </div>
+      </div>
+
+      <!-- Recent incidents -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Incidents</span>
+          <button class="btn btn-ghost btn-sm" onclick="switchView('history')">View All →</button>
+        </div>
+        <div id="recent-incidents-list">
+          <div class="loading-state"><div class="loading-spinner"></div> Loading...</div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Pending Sign-off</span></div>
+          <div class="panel-body" id="pending-signoff-list">
+            <div class="loading-state"><div class="loading-spinner"></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Recently Exported</span></div>
+          <div class="panel-body" id="recent-exports-list">
+            <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:11px">Export history coming soon</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INCIDENT HISTORY ==================== -->
+    <div class="view" id="view-history">
+      <div class="page-header">
+        <div class="page-title">Incident History</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)" id="history-count">—</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="history-search" placeholder="Search incidents..." oninput="filterHistory()" style="max-width:300px"/>
+        <select id="history-filter" onchange="filterHistory()" style="width:140px">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="closed">Closed</option>
+          <option value="standby">Standby</option>
+        </select>
+        <select id="history-type-filter" onchange="filterHistory()" style="width:160px">
+          <option value="all">All Types</option>
+          <option value="sar">Search &amp; Rescue</option>
+          <option value="disaster_relief">Disaster Relief</option>
+          <option value="training">Training</option>
+          <option value="standby">Standby</option>
+        </select>
+      </div>
+
+      <div id="history-list">
+        <div class="loading-state"><div class="loading-spinner"></div> Loading incident history...</div>
+      </div>
+    </div>
+
+    <!-- ==================== ACTIVE FORMS ==================== -->
+    <div class="view" id="view-forms">
+      <div class="page-header">
+        <div class="page-title">Active Forms</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">INCIDENT</label>
+        <select id="forms-incident-select" onchange="loadIncidentForms()" style="width:320px">
+          <option value="">— Select an incident —</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="forms-compile-btn" onclick="compileForms()" disabled>↻ Compile</button>
+        <button class="btn btn-amber btn-sm" id="forms-sign-btn" onclick="signForms()" disabled>✎ IC Sign-off</button>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" id="forms-export-zip-btn" onclick="exportZip()" disabled>⬇ ZIP Packet</button>
+          <button class="btn btn-ghost btn-sm" id="forms-export-json-btn" onclick="exportJson()" disabled>⬇ JSON</button>
+        </div>
+      </div>
+
+      <!-- Validation bar -->
+      <div class="val-bar" id="val-bar" style="display:none">
+        <span class="val-label">COMPLIANCE</span>
+        <span class="val-chip val-red" id="val-red">0 RED</span>
+        <span class="val-chip val-yellow" id="val-yellow">0 YELLOW</span>
+        <span class="val-chip val-green" id="val-green">0 GREEN</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)" id="val-status-text"></span>
+      </div>
+
+      <div id="forms-grid-container">
+        <div class="empty-state">
+          <div class="empty-icon">◈</div>
+          <div class="empty-title">Select an Incident to View Forms</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ICS LIBRARY ==================== -->
+    <div class="view" id="view-library">
+      <div class="page-header">
+        <div class="page-title">ICS Reference Library</div>
+      </div>
+
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);padding:8px 0">
+        FEMA NIMS ICS standard forms — field requirements, auto-population sources, and completion guidance.
+      </div>
+
+      <div class="lib-grid" id="library-grid"></div>
+    </div>
+
+    <!-- ==================== FEMA & EMA CONTACTS ==================== -->
+    <div class="view" id="view-contacts">
+      <div class="page-header">
+        <div class="page-title">FEMA &amp; Emergency Management</div>
+      </div>
+
+      <!-- EMA ZIP search -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Find Your Local EMA by ZIP Code</span></div>
+        <div class="panel-body">
+          <div class="ema-search-bar">
+            <input type="text" id="ema-zip" placeholder="Enter ZIP code (e.g. 17901)" maxlength="5" style="width:180px"/>
+            <button class="btn btn-primary btn-sm" onclick="searchEMA()">Search</button>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-left:8px">Searches FEMA's public EMA directory via web lookup guidance</span>
+          </div>
+          <div id="ema-results"></div>
+        </div>
+      </div>
+
+      <!-- FEMA key contacts -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:14px">
+          Federal Emergency Management Agency — Key Contacts
+        </div>
+        <div class="fema-contacts" id="fema-contacts-grid"></div>
+      </div>
+
+      <!-- PA-specific contacts -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:14px">
+          Pennsylvania Emergency Management — State Resources
+        </div>
+        <div class="fema-contacts" id="pa-contacts-grid"></div>
+      </div>
+    </div>
+
+    <!-- ==================== ICS GLOSSARY ==================== -->
+    <div class="view" id="view-glossary">
+      <div class="page-header">
+        <div class="page-title">ICS Glossary</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <input type="text" id="glossary-search" placeholder="Search terms..." oninput="filterGlossary()" style="max-width:300px"/>
+        <select id="glossary-category" onchange="filterGlossary()" style="width:160px">
+          <option value="all">All Categories</option>
+          <option value="roles">Roles</option>
+          <option value="sections">Sections</option>
+          <option value="forms">Forms</option>
+          <option value="operations">Operations</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+
+      <div id="glossary-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ==================== FORM DETAIL MODAL ==================== -->
+<div class="modal-overlay" id="form-modal">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-muted)" id="modal-form-number"></div>
+        <div class="modal-title" id="modal-form-title"></div>
+      </div>
+      <span id="modal-form-badge" style="margin-left:12px"></span>
+      <button class="modal-close" onclick="closeFormModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-form-body"></div>
+    <div class="modal-footer" id="modal-form-footer"></div>
+  </div>
+</div>
+
+<!-- ==================== INCIDENT DETAIL MODAL ==================== -->
+<div class="modal-overlay" id="incident-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--accent)" id="incident-modal-number"></div>
+        <div class="modal-title" id="incident-modal-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeIncidentModal()">✕</button>
+    </div>
+    <div class="modal-body" id="incident-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeIncidentModal()">Close</button>
+      <button class="btn btn-ghost btn-sm" id="incident-modal-forms-btn">Open in Forms →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ============================================================
+//  LOGBOOK — Frontend Application
+// ============================================================
+
+const API = '';
+let allIncidents = [];
+let currentIncidentId = null;
+let compiledData = null;
+let validationData = null;
+let currentFormKey = null;
+let currentFormData = null;
+
+// ============================================================
+//  INIT
+// ============================================================
+
+// ============================================================
+//  AUTH
+// ============================================================
+
+function showLogin() { document.getElementById('login-overlay').style.display = 'flex'; }
+function hideLogin() { document.getElementById('login-overlay').style.display = 'none'; }
+
+async function handleLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+
+  errEl.textContent = '';
+  if (!username || !password) {
+    errEl.textContent = 'Username and password are required.';
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const res = await fetch('/api/users/login', {
+      method:      'POST',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Login failed.';
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    if (data.must_change_password) {
+      errEl.textContent = 'Password change required — please log in via BASECAMP first.';
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+
+    currentUser = data;
+    updateTopbarUser(data);
+    hideLogin();
+    await bootApp();
+
+  } catch {
+    errEl.textContent = 'Connection error.';
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+  } catch {}
+  currentUser = null;
+  location.reload();
+}
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/users/me', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data;
+      updateTopbarUser(data);
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function updateTopbarUser(user) {
+  const el = document.getElementById('topbar-user');
+  if (!el || !user) return;
+  const label = (user.role || '').replace('_', ' ').toUpperCase();
+  const name  = (user.username || '').toUpperCase();
+  el.textContent = label + ' · ' + name;
+  el.style.cursor = 'pointer';
+  el.title = 'Click to sign out';
+  el.onclick = handleLogout;
+}
+
+async function bootApp() {
+  renderLibrary();
+  renderFEMAContacts();
+  renderGlossary();
+  await loadDashboard();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => switchView(item.dataset.view));
+  });
+
+  const authed = await checkAuth();
+  if (authed) {
+    await bootApp();
+  } else {
+    showLogin();
+  }
+});
+
+// ============================================================
+//  NAV
+// ============================================================
+function switchView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${viewId}`).classList.add('active');
+  document.querySelector(`[data-view="${viewId}"]`).classList.add('active');
+  if (viewId === 'history') loadHistory();
+  if (viewId === 'forms') loadFormsIncidentSelect();
+  if (viewId === 'glossary') renderGlossary();
+}
+
+// ============================================================
+//  API
+// ============================================================
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, { headers: {'Content-Type':'application/json'}, credentials:'include', ...opts });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  try {
+    const incidents = await apiFetch('/api/history/incidents');
+    allIncidents = incidents;
+
+    const total = incidents.length;
+    const active = incidents.filter(i => i.status === 'active').length;
+    const signed = incidents.filter(i => i.signed_at).length;
+    const pending = incidents.filter(i => !i.signed_at && i.status === 'active').length;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-active').textContent = active;
+    document.getElementById('stat-signed').textContent = signed;
+    document.getElementById('stat-pending').textContent = pending;
+
+    // Recent incidents (last 5)
+    const recentEl = document.getElementById('recent-incidents-list');
+    const recent = incidents.slice(0, 5);
+    if (recent.length === 0) {
+      recentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No Incidents on Record</div></div>';
+    } else {
+      recentEl.innerHTML = recent.map(i => renderIncidentCard(i)).join('');
+    }
+
+    // Pending sign-off
+    const pendingEl = document.getElementById('pending-signoff-list');
+    const pendingList = incidents.filter(i => !i.signed_at && i.status === 'active');
+    if (pendingList.length === 0) {
+      pendingEl.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:11px">No forms awaiting signature</div>';
+    } else {
+      pendingEl.innerHTML = pendingList.map(i => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:600">${i.incident_name}</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${i.incident_number}</div>
+          </div>
+          <button class="btn btn-amber btn-sm" onclick="openFormsForIncident('${i.id}')">Sign →</button>
+        </div>
+      `).join('');
+    }
+
+  } catch(e) {
+    toast('Dashboard error: ' + e.message, 'error');
+  }
+}
+
+function openFormsForIncident(incidentId) {
+  switchView('forms');
+  setTimeout(() => {
+    const sel = document.getElementById('forms-incident-select');
+    sel.value = incidentId;
+    loadIncidentForms();
+  }, 100);
+}
+
+// ============================================================
+//  INCIDENT HISTORY
+// ============================================================
+async function loadHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div> Loading...</div>';
+  try {
+    const incidents = await apiFetch('/api/history/incidents');
+    allIncidents = incidents;
+    renderHistory(incidents);
+  } catch(e) {
+    list.innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+  }
+}
+
+function renderHistory(incidents) {
+  const search = (document.getElementById('history-search')?.value || '').toLowerCase();
+  const statusFilter = document.getElementById('history-filter')?.value || 'all';
+  const typeFilter = document.getElementById('history-type-filter')?.value || 'all';
+
+  let filtered = incidents.filter(i => {
+    if (statusFilter !== 'all' && i.status !== statusFilter) return false;
+    if (typeFilter !== 'all' && i.incident_type !== typeFilter) return false;
+    if (search && !(i.incident_name.toLowerCase().includes(search) || i.incident_number.toLowerCase().includes(search) || (i.county || '').toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  document.getElementById('history-count').textContent = `${filtered.length} incidents`;
+
+  const list = document.getElementById('history-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No Incidents Found</div></div>';
+    return;
+  }
+
+  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${filtered.map(i => renderIncidentCard(i)).join('')}</div>`;
+}
+
+function filterHistory() {
+  renderHistory(allIncidents);
+}
+
+function renderIncidentCard(i) {
+  const statusClass = i.status === 'active' ? 'badge-active' : i.status === 'closed' ? 'badge-muted' : 'badge-warn';
+  const typeLabel = {sar:'SAR', disaster_relief:'DISASTER RELIEF', training:'TRAINING', standby:'STANDBY'}[i.incident_type] || i.incident_type;
+  const signed = i.signed_at ? `<span class="badge badge-active">Signed</span>` : `<span class="badge badge-warn">Unsigned</span>`;
+  const date = i.started_at ? i.started_at.slice(0,10) : '—';
+
+  return `
+    <div class="incident-card" onclick="openIncidentModal('${i.id}')">
+      <div class="incident-card-left">
+        <div class="incident-number">${i.incident_number}</div>
+        <div class="incident-name">${i.incident_name}</div>
+        <div class="incident-meta">${i.county ? i.county + ', ' : ''}${i.state || 'PA'} · ${typeLabel} · Started ${date}</div>
+      </div>
+      <div class="incident-card-right">
+        <span class="badge ${statusClass}">${i.status}</span>
+        ${signed}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+//  INCIDENT MODAL
+// ============================================================
+async function openIncidentModal(incidentId) {
+  const incident = allIncidents.find(i => i.id === incidentId);
+  if (!incident) return;
+
+  document.getElementById('incident-modal-number').textContent = incident.incident_number;
+  document.getElementById('incident-modal-title').textContent = incident.incident_name;
+  document.getElementById('incident-modal-forms-btn').onclick = () => { closeIncidentModal(); openFormsForIncident(incidentId); };
+
+  const body = document.getElementById('incident-modal-body');
+  body.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div></div>';
+  document.getElementById('incident-modal').classList.add('open');
+
+  try {
+    const history = await apiFetch(`/api/history/${incidentId}`);
+    const forms = history.forms;
+
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div><div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:3px">STATUS</div>
+          <span class="badge ${incident.status === 'active' ? 'badge-active' : 'badge-muted'}">${incident.status}</span></div>
+        <div><div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:3px">TYPE</div>
+          <div style="font-size:13px">${incident.incident_type}</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:3px">COUNTY</div>
+          <div style="font-size:13px">${incident.county || '—'}, ${incident.state || 'PA'}</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:3px">STARTED</div>
+          <div style="font-family:var(--font-mono);font-size:12px">${(incident.started_at || '—').slice(0,16).replace('T',' ')}</div></div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">ICS Form Status</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${Object.entries(forms).map(([key, f]) => {
+          const signed = f.signed;
+          const has = f.count > 0;
+          const cls = signed ? 'badge-active' : has ? 'badge-warn' : 'badge-muted';
+          const label = signed ? 'Signed' : has ? `v${f.versions.length}` : 'Not compiled';
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border)">
+              <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-primary)">${f.label}</div>
+              <span class="badge ${cls}">${label}</span>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+  }
+}
+
+function closeIncidentModal() {
+  document.getElementById('incident-modal').classList.remove('open');
+}
+
+// ============================================================
+//  ACTIVE FORMS
+// ============================================================
+async function loadFormsIncidentSelect() {
+  const sel = document.getElementById('forms-incident-select');
+  const current = sel.value;
+  try {
+    const incidents = await apiFetch('/api/history/incidents');
+    allIncidents = incidents;
+    sel.innerHTML = '<option value="">— Select an incident —</option>';
+    incidents.forEach(i => {
+      const o = document.createElement('option');
+      o.value = i.id;
+      o.textContent = `${i.incident_number} — ${i.incident_name}`;
+      sel.appendChild(o);
+    });
+    if (current) { sel.value = current; loadIncidentForms(); }
+  } catch(e) { toast('Error loading incidents: ' + e.message, 'error'); }
+}
+
+async function loadIncidentForms() {
+  const incidentId = document.getElementById('forms-incident-select').value;
+  if (!incidentId) return;
+  currentIncidentId = incidentId;
+  compiledData = null;
+  validationData = null;
+
+  document.getElementById('forms-compile-btn').disabled = false;
+  document.getElementById('forms-sign-btn').disabled = true;
+  document.getElementById('forms-export-zip-btn').disabled = true;
+  document.getElementById('forms-export-json-btn').disabled = true;
+  document.getElementById('val-bar').style.display = 'none';
+  document.getElementById('forms-grid-container').innerHTML = '<div class="loading-state"><div class="loading-spinner"></div> Loading form status...</div>';
+
+  try {
+    const history = await apiFetch(`/api/history/${incidentId}`);
+    renderFormsGrid(history.forms);
+  } catch(e) {
+    document.getElementById('forms-grid-container').innerHTML = `<div style="padding:20px;color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+  }
+}
+
+function renderFormsGrid(forms) {
+  const ICS_DEFS = getICSDefinitions();
+  document.getElementById('forms-grid-container').innerHTML = `
+    <div class="ics-grid">${Object.entries(forms).map(([key, f]) => {
+      const def = ICS_DEFS.find(d => d.key === key) || {};
+      const signed = f.signed;
+      const has = f.count > 0;
+      const statusClass = signed ? 'status-signed' : has ? 'status-yellow' : 'status-none';
+      const badge = signed ? `<span class="badge badge-active">Signed</span>`
+                  : has ? `<span class="badge badge-warn">Draft v${f.versions.length}</span>`
+                  : `<span class="badge badge-muted">Not Started</span>`;
+      return `
+        <div class="ics-card ${statusClass}" onclick="openFormModal('${key}')">
+          <div class="ics-number">${def.number || key.toUpperCase()}</div>
+          <div class="ics-title">${def.shortTitle || f.label}</div>
+          <div class="ics-desc">${def.desc || ''}</div>
+          <div class="ics-footer">${badge}
+            ${signed ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();downloadForm('${key}')">⬇ PDF</button>` : ''}
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+async function compileForms() {
+  if (!currentIncidentId) return;
+  document.getElementById('forms-compile-btn').disabled = true;
+  document.getElementById('forms-compile-btn').textContent = '↻ Compiling...';
+  try {
+    const result = await apiFetch(`/api/forms/${currentIncidentId}/compile`);
+    compiledData = result.compiled;
+    validationData = result.validation;
+
+    // Show validation bar
+    const v = validationData.summary;
+    document.getElementById('val-red').textContent = `${v.red_count} RED`;
+    document.getElementById('val-yellow').textContent = `${v.yellow_count} YELLOW`;
+    document.getElementById('val-green').textContent = `${v.green_count} GREEN`;
+    document.getElementById('val-bar').style.display = 'flex';
+
+    const ready = validationData.ready_to_sign;
+    document.getElementById('val-status-text').textContent = ready ? '✓ Ready for IC signature' : `${v.red_count} required field(s) must be completed`;
+    document.getElementById('val-status-text').style.color = ready ? 'var(--accent)' : 'var(--red)';
+    document.getElementById('forms-sign-btn').disabled = !ready;
+    document.getElementById('forms-export-json-btn').disabled = false;
+
+    // Re-render grid with validation status
+    renderFormsGridFromCompiled();
+    toast('Forms compiled successfully');
+  } catch(e) {
+    toast('Compile error: ' + e.message, 'error');
+  } finally {
+    document.getElementById('forms-compile-btn').disabled = false;
+    document.getElementById('forms-compile-btn').textContent = '↻ Compile';
+  }
+}
+
+function renderFormsGridFromCompiled() {
+  const ICS_DEFS = getICSDefinitions();
+  const forms = validationData.forms;
+  document.getElementById('forms-grid-container').innerHTML = `
+    <div class="ics-grid">${ICS_DEFS.map(def => {
+      const v = forms[def.key] || {};
+      const status = v.status || 'none';
+      const statusClass = `status-${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : status === 'red' ? 'red' : 'none'}`;
+      const badge = status === 'green' ? `<span class="badge badge-active">Complete</span>`
+                  : status === 'yellow' ? `<span class="badge badge-warn">Partial</span>`
+                  : status === 'red' ? `<span class="badge badge-danger">Incomplete</span>`
+                  : `<span class="badge badge-muted">N/A</span>`;
+      const redCount = (v.fields || []).filter(f => f.status === 'red').length;
+      return `
+        <div class="ics-card ${statusClass}" onclick="openFormModal('${def.key}')">
+          <div class="ics-number">${def.number}</div>
+          <div class="ics-title">${def.shortTitle}</div>
+          <div class="ics-desc">${def.desc}</div>
+          <div class="ics-footer">
+            ${badge}
+            ${redCount > 0 ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--red)">${redCount} required</span>` : ''}
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+async function signForms() {
+  if (!currentIncidentId) return;
+  if (!confirm('Sign all ICS forms for this incident? Signed forms are immutable.')) return;
+  try {
+    const result = await apiFetch(`/api/forms/${currentIncidentId}/sign`, { method: 'POST' });
+    toast(`${result.signed_forms.length} forms signed by ${result.signed_by}`);
+    document.getElementById('forms-export-zip-btn').disabled = false;
+    document.getElementById('forms-sign-btn').disabled = true;
+    loadIncidentForms();
+  } catch(e) {
+    toast('Sign failed: ' + e.message, 'error');
+  }
+}
+
+function exportZip() {
+  if (!currentIncidentId) return;
+  window.open(`${API}/api/forms/${currentIncidentId}/export/zip`, '_blank');
+}
+
+function exportJson() {
+  if (!currentIncidentId) return;
+  window.open(`${API}/api/forms/${currentIncidentId}/export/json`, '_blank');
+}
+
+function downloadForm(formKey) {
+  if (!currentIncidentId) return;
+  window.open(`${API}/api/forms/${currentIncidentId}/export/${formKey}`, '_blank');
+}
+
+// ============================================================
+//  FORM DETAIL MODAL
+// ============================================================
+async function openFormModal(formKey) {
+  currentFormKey = formKey;
+  const def = getICSDefinitions().find(d => d.key === formKey) || {};
+  document.getElementById('modal-form-number').textContent = def.number || formKey.toUpperCase();
+  document.getElementById('modal-form-title').textContent = def.shortTitle || formKey;
+
+  const body = document.getElementById('modal-form-body');
+  const footer = document.getElementById('modal-form-footer');
+  body.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div></div>';
+  footer.innerHTML = '';
+  document.getElementById('form-modal').classList.add('open');
+
+  // If we have compiled data, show it
+  if (compiledData && validationData) {
+    const formData = compiledData[formKey];
+    const valData = validationData.forms[formKey];
+    renderFormDetail(def, formData, valData, footer);
+    return;
+  }
+
+  // Otherwise load history
+  if (currentIncidentId) {
+    try {
+      const history = await apiFetch(`/api/history/${currentIncidentId}/${formKey}`);
+      renderFormHistory(def, history, footer);
+    } catch(e) {
+      body.innerHTML = `<div style="color:var(--red);font-family:var(--font-mono)">Error: ${e.message}</div>`;
+    }
+  } else {
+    // Show library info
+    renderFormLibraryDetail(def);
+    footer.innerHTML = `<button class="btn btn-ghost" onclick="closeFormModal()">Close</button>`;
+  }
+}
+
+function renderFormDetail(def, formData, valData, footer) {
+  const body = document.getElementById('modal-form-body');
+  const fields = valData?.fields || [];
+
+  // Group fields by status
+  const redFields = fields.filter(f => f.status === 'red');
+  const yellowFields = fields.filter(f => f.status === 'yellow');
+
+  let html = '';
+
+  if (redFields.length > 0) {
+    html += `<div style="padding:10px 14px;background:rgba(224,82,82,0.08);border:1px solid var(--red-dim);margin-bottom:16px">
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--red);letter-spacing:2px;margin-bottom:8px">⚠ ${redFields.length} REQUIRED FIELDS MISSING</div>
+      ${redFields.map(f => `
+        <div style="margin-bottom:8px">
+          <label style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">${f.label} *</label>
+          <textarea class="narrative-input" id="field-${f.field}" placeholder="${f.message}" rows="2"></textarea>
+        </div>`).join('')}
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveNarrative('${def.key}')">Save Fields</button>
+    </div>`;
+  }
+
+  if (yellowFields.length > 0) {
+    html += `<div style="padding:10px 14px;background:var(--amber-glow);border:1px solid var(--amber-dim);margin-bottom:16px">
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--amber);letter-spacing:2px;margin-bottom:8px">${yellowFields.length} RECOMMENDED FIELDS</div>
+      ${yellowFields.map(f => `
+        <div style="margin-bottom:8px">
+          <label style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">${f.label}</label>
+          <textarea class="narrative-input" id="field-${f.field}" placeholder="${f.message || 'Optional'}" rows="2"></textarea>
+        </div>`).join('')}
+      <button class="btn btn-amber btn-sm" style="margin-top:8px" onclick="saveNarrative('${def.key}')">Save Fields</button>
+    </div>`;
+  }
+
+  // Show compiled data if available
+  if (formData && typeof formData === 'object') {
+    html += `<div class="form-detail-section">
+      <div class="form-detail-title">Compiled Form Data</div>`;
+    const skip = ['id','incident_id','version','created_at','updated_at','prepared_by','signed_by'];
+    Object.entries(formData).forEach(([k, v]) => {
+      if (skip.includes(k) || v === null || v === undefined || v === '') return;
+      const label = k.replace(/_/g, ' ');
+      const display = typeof v === 'object' ? `<pre style="font-size:11px;color:var(--text-secondary);white-space:pre-wrap">${JSON.stringify(v, null, 2)}</pre>` : `<span>${v}</span>`;
+      html += `<div class="form-field-row"><div class="field-label">${label}</div><div class="field-value">${display}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  body.innerHTML = html || '<div style="color:var(--text-muted);font-family:var(--font-mono);padding:20px">No data compiled yet. Click Compile to generate form data.</div>';
+  footer.innerHTML = `
+    <button class="btn btn-ghost" onclick="closeFormModal()">Close</button>
+    ${currentIncidentId ? `<button class="btn btn-ghost btn-sm" onclick="downloadForm('${def.key}')">⬇ PDF</button>` : ''}
+  `;
+}
+
+function renderFormHistory(def, history, footer) {
+  const body = document.getElementById('modal-form-body');
+  const versions = history.versions || [];
+
+  if (versions.length === 0) {
+    body.innerHTML = '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No versions on record for this form</div></div>';
+  } else {
+    body.innerHTML = versions.map(v => `
+      <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent)">Version ${v.version}</span>
+          ${v.signed_at ? `<span class="badge badge-active">Signed ${v.signed_at.slice(0,10)}</span>` : '<span class="badge badge-warn">Unsigned</span>'}
+          ${v.signed_by_name ? `<span style="font-size:11px;color:var(--text-muted)">by ${v.signed_by_name}</span>` : ''}
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">Created ${v.created_at?.slice(0,16).replace('T',' ')}</div>
+      </div>`).join('');
+  }
+
+  footer.innerHTML = `<button class="btn btn-ghost" onclick="closeFormModal()">Close</button>`;
+}
+
+function renderFormLibraryDetail(def) {
+  const body = document.getElementById('modal-form-body');
+  body.innerHTML = `
+    <div class="form-detail-section">
+      <div class="form-detail-title">Purpose</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">${def.purpose || def.desc}</div>
+    </div>
+    <div class="form-detail-section">
+      <div class="form-detail-title">Required Fields</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${(def.requiredFields || []).map(f => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border)">
+            <span style="color:var(--red);font-family:var(--font-mono);font-size:11px">●</span>
+            <span style="font-size:13px;color:var(--text-primary)">${f}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="form-detail-section">
+      <div class="form-detail-title">Auto-Populated From</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${(def.sources || []).map(s => `<span class="badge badge-blue">${s}</span>`).join('')}
+      </div>
+    </div>
+    ${def.notes ? `<div class="form-detail-section"><div class="form-detail-title">IC Notes</div><div style="font-size:13px;color:var(--text-secondary)">${def.notes}</div></div>` : ''}
+  `;
+}
+
+async function saveNarrative(formKey) {
+  if (!currentIncidentId) return;
+  const def = getICSDefinitions().find(d => d.key === formKey);
+  const fields = {};
+
+  // Collect all filled narrative inputs
+  document.querySelectorAll('[id^="field-"]').forEach(el => {
+    const fieldName = el.id.replace('field-', '');
+    if (el.value.trim()) fields[fieldName] = el.value.trim();
+  });
+
+  if (Object.keys(fields).length === 0) { toast('No fields to save', 'warn'); return; }
+
+  try {
+    await apiFetch(`/api/forms/${currentIncidentId}/narrative`, {
+      method: 'POST',
+      body: JSON.stringify({ form: formKey, fields }),
+    });
+    toast('Narrative fields saved');
+    closeFormModal();
+    compileForms();
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
+function closeFormModal() {
+  document.getElementById('form-modal').classList.remove('open');
+  currentFormKey = null;
+}
+
+// ============================================================
+//  ICS LIBRARY
+// ============================================================
+function renderLibrary() {
+  const defs = getICSDefinitions();
+  document.getElementById('library-grid').innerHTML = defs.map(def => `
+    <div class="lib-card" onclick="openLibraryModal('${def.key}')">
+      <div class="lib-form-number">${def.number}</div>
+      <div class="lib-form-title">${def.shortTitle}</div>
+      <div class="lib-form-desc">${def.desc}</div>
+      <div class="lib-form-fields">
+        ${(def.sources || []).map(s => `<span class="lib-field-tag">${s}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openLibraryModal(key) {
+  currentFormKey = key;
+  const def = getICSDefinitions().find(d => d.key === key);
+  document.getElementById('modal-form-number').textContent = def.number;
+  document.getElementById('modal-form-title').textContent = def.shortTitle;
+  document.getElementById('modal-form-badge').innerHTML = '';
+  renderFormLibraryDetail(def);
+  document.getElementById('modal-form-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeFormModal()">Close</button>`;
+  document.getElementById('form-modal').classList.add('open');
+}
+
+// ============================================================
+//  FEMA / EMA CONTACTS
+// ============================================================
+function renderFEMAContacts() {
+  const femaContacts = [
+    { org:'FEMA HQ', name:'FEMA National Response Coordination Center', phone:'1-800-621-3362', web:'https://www.fema.gov', address:'500 C Street SW, Washington, DC 20472', desc:'24/7 NRCC — primary federal emergency coordination' },
+    { org:'FEMA Region 3', name:'FEMA Region III (PA/Mid-Atlantic)', phone:'215-931-5500', web:'https://www.fema.gov/region-3', address:'615 Chestnut St, Philadelphia, PA 19106', desc:'Covers PA, VA, MD, DE, DC, WV' },
+    { org:'FEMA', name:'National Flood Insurance Program', phone:'1-800-427-4661', web:'https://www.fema.gov/flood-insurance', address:'', desc:'NFIP inquiries and claims' },
+    { org:'FEMA IPAWS', name:'Integrated Public Alert & Warning System', phone:'', web:'https://www.fema.gov/emergency-managers/practitioners/integrated-public-alert-warning-system', address:'', desc:'Emergency alert and warning coordination' },
+    { org:'FEMA Training', name:'Emergency Management Institute (EMI)', phone:'301-447-1000', web:'https://training.fema.gov', address:'16825 S. Seton Ave, Emmitsburg, MD 21727', desc:'ICS training, NIMS courses, IS-100 through IS-800' },
+    { org:'FEMA Grants', name:'Hazard Mitigation Grant Program', phone:'1-800-621-3362', web:'https://www.fema.gov/grants', address:'', desc:'SAR and emergency management grant resources' },
+  ];
+
+  const paContacts = [
+    { org:'PEMA', name:'Pennsylvania Emergency Management Agency', phone:'717-651-2001', web:'https://www.pema.pa.gov', address:'2605 Interstate Dr, Harrisburg, PA 17110', desc:'State emergency management — primary SAR coordination authority' },
+    { org:'PEMA 24/7', name:'PEMA State Emergency Operations Center', phone:'717-651-2011', web:'https://www.pema.pa.gov', address:'', desc:'24/7 duty officer line for active incidents' },
+    { org:'PA Game Commission', name:'PA Bureau of Law Enforcement — Search & Rescue', phone:'717-787-4250', web:'https://www.pgc.pa.gov', address:'2001 Elmerton Ave, Harrisburg, PA 17110', desc:'SAR coordination on game lands — key partner for Hawk Mountain operations' },
+    { org:'DCNR', name:'PA Dept of Conservation & Natural Resources', phone:'717-787-8776', web:'https://www.dcnr.pa.gov', address:'400 Market St, Harrisburg, PA 17101', desc:'SAR coordination on state forest and park lands' },
+    { org:'PA State Police', name:'PSP Emergency Management Division', phone:'717-783-5599', web:'https://www.psp.pa.gov', address:'1800 Elmerton Ave, Harrisburg, PA 17110', desc:'State police coordination for SAR operations' },
+    { org:'PA 211', name:'PA 211 — Community Resource Helpline', phone:'211', web:'https://pa211.org', address:'', desc:'Resource referral for emergency support services statewide' },
+  ];
+
+  document.getElementById('fema-contacts-grid').innerHTML = femaContacts.map(c => renderFEMACard(c)).join('');
+  document.getElementById('pa-contacts-grid').innerHTML = paContacts.map(c => renderFEMACard(c)).join('');
+}
+
+function renderFEMACard(c) {
+  return `
+    <div class="fema-card">
+      <div class="fema-org">${c.org}</div>
+      <div class="fema-name">${c.name}</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">${c.desc}</div>
+      ${c.phone ? `<div class="fema-detail"><div class="fema-detail-label">Phone</div><div class="fema-detail-value"><a href="tel:${c.phone}">${c.phone}</a></div></div>` : ''}
+      ${c.web ? `<div class="fema-detail"><div class="fema-detail-label">Web</div><div class="fema-detail-value"><a href="${c.web}" target="_blank">${c.web.replace('https://','')}</a></div></div>` : ''}
+      ${c.address ? `<div class="fema-detail"><div class="fema-detail-label">Address</div><div class="fema-detail-value" style="color:var(--text-secondary)">${c.address}</div></div>` : ''}
+    </div>`;
+}
+
+// EMA ZIP search — provides FEMA's LEMA lookup URL since no public API exists
+function searchEMA() {
+  const zip = document.getElementById('ema-zip').value.trim();
+  if (!/^\d{5}$/.test(zip)) { toast('Enter a valid 5-digit ZIP code', 'error'); return; }
+
+  const results = document.getElementById('ema-results');
+  results.innerHTML = `
+    <div style="margin-top:16px">
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:12px">
+        FEMA does not provide a public real-time EMA directory API. Use the resources below to find your local EMA for ZIP <span style="color:var(--accent)">${zip}</span>:
+      </div>
+      <div class="ema-results">
+        <div class="ema-card">
+          <div class="ema-name">FEMA Local Government Directory</div>
+          <div class="ema-detail">Search FEMA's official directory for your county EMA.</div>
+          <div class="ema-detail"><a href="https://www.fema.gov/emergency-managers/practitioners/state-county-contacts" target="_blank">→ fema.gov/emergency-managers/practitioners/state-county-contacts</a></div>
+        </div>
+        <div class="ema-card">
+          <div class="ema-name">PEMA County EMA Directory (PA)</div>
+          <div class="ema-detail">Pennsylvania Emergency Management Agency — all 67 county EMAs listed with contact information.</div>
+          <div class="ema-detail"><a href="https://www.pema.pa.gov/planningandpreparedness/county-ema/Pages/County-EMA-Directors.aspx" target="_blank">→ pema.pa.gov — County EMA Directors</a></div>
+        </div>
+        <div class="ema-card">
+          <div class="ema-name">NAEMSP County Lookup</div>
+          <div class="ema-detail">National Association of Emergency Medical Services Physicians county resource locator.</div>
+          <div class="ema-detail"><a href="https://www.uszip.com/zip/${zip}" target="_blank">→ Identify county for ZIP ${zip}</a></div>
+        </div>
+        <div class="ema-card">
+          <div class="ema-name">Schuylkill County EMA (Local — KRS Primary)</div>
+          <div class="ema-name" style="font-size:13px;color:var(--text-secondary)">Schuylkill County Department of Emergency Services</div>
+          <div class="ema-detail">Phone: <a href="tel:570-628-1010">570-628-1010</a></div>
+          <div class="ema-detail">Address: 420 N. Centre St, Pottsville, PA 17901</div>
+          <div class="ema-detail"><a href="https://www.co.schuylkill.pa.us/Offices/EmergencyServices/EmergencyManagement.asp" target="_blank">→ County EMA Website</a></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+//  ICS GLOSSARY
+// ============================================================
+const GLOSSARY_TERMS = [
+  { term:'Incident Commander (IC)', category:'roles', def:'The individual responsible for all incident activities, including the development of strategies and tactics and the ordering and release of resources.' },
+  { term:'Operations Section Chief (OSC)', category:'roles', def:'Responsible for the management of all operations directly applicable to the primary mission. Activates and supervises branch, division, group, and team elements.' },
+  { term:'Logistics Section Chief', category:'roles', def:'Provides all support needs for the incident, including ordering resources from off-incident locations and providing facilities, ground support, food, communications, and medical services.' },
+  { term:'Safety Officer', category:'roles', def:'Monitors incident operations and advises the IC on all matters relating to operational safety.' },
+  { term:'Public Information Officer (PIO)', category:'roles', def:'Responsible for coordinating information release and media relations for the incident.' },
+  { term:'Liaison Officer', category:'roles', def:'The point of contact for representatives of assisting and cooperating agencies.' },
+  { term:'Division', category:'sections', def:'A division of the incident used to divide an incident geographically. Supervised by a Division Supervisor.' },
+  { term:'Group', category:'sections', def:'Established to divide the incident into functional areas of operation. Groups are composed of resources assembled to perform a special function.' },
+  { term:'Branch', category:'sections', def:'An organizational level having functional/geographic responsibility for major parts of incident operations. Between Section and Division/Group.' },
+  { term:'Operational Period', category:'operations', def:'The period scheduled for execution of a given set of tactical actions as specified in the Incident Action Plan. Typically 12–24 hours for SAR.' },
+  { term:'Incident Action Plan (IAP)', category:'operations', def:'Contains objectives reflecting the overall incident strategy, tactics, risk management, and member assignments during the operational period.' },
+  { term:'ICS-201', category:'forms', def:'Incident Briefing. Provides initial briefing on incident situation and resources allocated. Also serves as initial IAP. IC completes prior to transition.' },
+  { term:'ICS-204', category:'forms', def:'Assignment List. Provides work assignments for Divisions/Groups. Lists resources, supervisors, reporting locations, and special instructions.' },
+  { term:'ICS-205', category:'forms', def:'Incident Radio Communications Plan. Lists radio channels, frequencies, and assignments by function and operational period.' },
+  { term:'ICS-206', category:'forms', def:'Medical Plan. Lists medical aid stations, procedures, medical personnel (WFR/EMT/Paramedic), and hospital routing.' },
+  { term:'ICS-209', category:'forms', def:'Incident Status Summary. Submitted to agency executives to provide situation and resource status. Compiled every operational period.' },
+  { term:'ICS-211', category:'forms', def:'Incident Check-In/Check-Out List. Records all personnel and equipment checking in or out of the incident. Primary accountability document.' },
+  { term:'ICS-214', category:'forms', def:'Activity Log. Records details of notable activities by personnel and equipment. One per operator per operational period.' },
+  { term:'ICS-215', category:'forms', def:'Operational Planning Worksheet. Communicates the decisions made by the Operations Section Chief during the planning meeting for the next operational period.' },
+  { term:'Probability of Detection (POD)', category:'operations', def:'The probability that a search team will detect a missing subject if the subject is in the assigned search area. Expressed as a percentage.' },
+  { term:'Point Last Seen (PLS)', category:'operations', def:'The last known location of the missing subject before they were reported missing.' },
+  { term:'Last Known Position (LKP)', category:'operations', def:'The most recent confirmed location of the subject, which may differ from PLS if there are later verified sightings.' },
+  { term:'NIMS', category:'general', def:'National Incident Management System. Provides a common approach to managing incidents regardless of their cause, size, or complexity.' },
+  { term:'Unified Command', category:'general', def:'A structure used in multi-jurisdictional or multi-agency incidents. Allows all agencies with responsibility to manage the incident jointly.' },
+  { term:'Unity of Command', category:'general', def:'Each individual involved in incident operations will be assigned to only one supervisor.' },
+  { term:'Span of Control', category:'general', def:'The number of resources for which a supervisor is responsible. Optimum span of control is 1 supervisor to 5 subordinates (range: 1:3 to 1:7).' },
+  { term:'Check-In', category:'operations', def:'The process by which resources first report to an incident. All responders, regardless of agency affiliation, must check in upon arrival.' },
+  { term:'Demobilization', category:'operations', def:'The orderly, safe, and efficient return of an incident resource to its original location and status.' },
+  { term:'Resource Typing', category:'general', def:'The categorization and description of response resources that are commonly exchanged in disasters through mutual aid agreements.' },
+];
+
+function renderGlossary() {
+  const search = (document.getElementById('glossary-search')?.value || '').toLowerCase();
+  const cat = document.getElementById('glossary-category')?.value || 'all';
+
+  const filtered = GLOSSARY_TERMS.filter(t => {
+    if (cat !== 'all' && t.category !== cat) return false;
+    if (search && !t.term.toLowerCase().includes(search) && !t.def.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('glossary-list').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${filtered.map(t => `
+        <div style="background:var(--bg-panel);border:1px solid var(--border);padding:14px 16px;border-left:3px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)">${t.term}</div>
+            <span class="badge badge-muted" style="font-size:9px">${t.category}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">${t.def}</div>
+        </div>`).join('')}
+      ${filtered.length === 0 ? '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No Terms Found</div></div>' : ''}
+    </div>`;
+}
+
+function filterGlossary() { renderGlossary(); }
+
+// ============================================================
+//  ICS DEFINITIONS DATA
+// ============================================================
+function getICSDefinitions() {
+  return [
+    {
+      key: 'ics_201', number: 'ICS-201', shortTitle: 'Incident Briefing',
+      desc: 'Initial incident situation, objectives, resources allocated, and organization. Serves as initial IAP.',
+      purpose: 'Provides the initial briefing to incoming resources and agency representatives. Used by the IC to document the incident situation, initial objectives, resource summary, and current organization.',
+      requiredFields: ['Incident Name', 'Date/Time Initiated', 'Incident Commander', 'Situation Summary', 'Initial Objectives'],
+      sources: ['incidents', 'personnel', 'deployments'],
+      notes: 'Must be completed before transfer of command. IC should fill situation_summary, initial_objectives, and current_actions narrative fields.'
+    },
+    {
+      key: 'ics_204', number: 'ICS-204', shortTitle: 'Assignment List',
+      desc: 'Work assignments for Divisions/Groups. Resources, roles, reporting locations, special instructions.',
+      purpose: 'Provides resources with their assignments. Separate ICS-204 is produced for each Division and Group. Division supervisors must confirm they understand assignments.',
+      requiredFields: ['Operational Period', 'Division/Group', 'Resources Assigned', 'Division Supervisor'],
+      sources: ['deployments', 'personnel', 'search_segments'],
+      notes: 'Auto-compiled from deployment records. One form generated per division. Special instructions field requires IC narrative.'
+    },
+    {
+      key: 'ics_205', number: 'ICS-205', shortTitle: 'Radio Communications Plan',
+      desc: 'Radio channels, frequencies, and assignments by function and operational period.',
+      purpose: 'Provides all incident communications information in one place. All assigned personnel must have access to this form during the incident.',
+      requiredFields: ['Operational Period', 'Channel Assignments', 'Function/Assignment'],
+      sources: ['radio_log', 'incidents'],
+      notes: 'Channel assignments are pulled from radio log entries. IC/Logistics must confirm channel plan each operational period.'
+    },
+    {
+      key: 'ics_206', number: 'ICS-206', shortTitle: 'Medical Plan',
+      desc: 'Medical aid stations, medical personnel credentials, hospital routing, and emergency procedures.',
+      purpose: 'Provides medical units and personnel with information on medical aid stations, personnel, incident medical emergency procedures, and hospital routing.',
+      requiredFields: ['Medical Officer', 'Medical Aid Stations', 'Hospital Routing'],
+      sources: ['certifications', 'personnel', 'deployments'],
+      notes: 'Auto-populated with all WFR, WEMT, EMT, Paramedic, RN, MD personnel from active deployments. Hospital routing requires IC input.'
+    },
+    {
+      key: 'ics_209', number: 'ICS-209', shortTitle: 'Incident Status Summary',
+      desc: 'Situation and resource status for agency executives. Compiled every operational period.',
+      purpose: 'Submitted to agency and EOC/MAC to provide a picture of the situation, resource allocation, and current status. Required for incidents that extend beyond initial operational period.',
+      requiredFields: ['Incident Phase', 'Current Situation', 'Primary Mission', 'Total Personnel'],
+      sources: ['incidents', 'deployments', 'search_segments'],
+      notes: 'Situation narrative is the most important IC-authored field. Should describe current phase, key developments, and planned next actions.'
+    },
+    {
+      key: 'ics_211', number: 'ICS-211', shortTitle: 'Check-In/Check-Out List',
+      desc: 'Complete roster of all personnel who checked in/out. Primary accountability document.',
+      purpose: 'Supports accountability by recording all resources checking in and out. Essential for personnel accountability and for ensuring all personnel are accounted for at demobilization.',
+      requiredFields: ['Personnel Name', 'Check-In Time', 'Home Agency', 'Assignment'],
+      sources: ['deployments', 'personnel'],
+      notes: 'Fully auto-populated from deployment records. No IC narrative required. Append-only — check-in entries cannot be edited.'
+    },
+    {
+      key: 'ics_214', number: 'ICS-214', shortTitle: 'Activity Log',
+      desc: 'Timestamped activity record per operator. One form per personnel per operational period.',
+      purpose: 'Records details of notable activities by personnel. Provides a record for post-incident review and future incident planning. One ICS-214 is produced per operator.',
+      requiredFields: ['Unit Name', 'Operational Period', 'Activity Entries'],
+      sources: ['radio_log', 'deployments', 'personnel'],
+      notes: 'Activity entries are pulled from radio log entries by operator. One form generated per deployed personnel record.'
+    },
+    {
+      key: 'ics_215', number: 'ICS-215', shortTitle: 'Operational Planning Worksheet',
+      desc: 'Branch/Division assignments, tactical objectives, and support requirements for next operational period.',
+      purpose: 'Used by the Operations Section Chief during the planning meeting to complete work assignments for the next operational period. Communicates tactical objectives and resource requirements.',
+      requiredFields: ['Operational Period', 'Branches/Divisions', 'Tactical Objectives'],
+      sources: ['search_segments', 'deployments', 'incidents'],
+      notes: 'Tactical objectives should align with search segment assignments and probability of detection targets. OSC completes this form during the planning cycle.'
+    },
+  ];
+}
+
+// ============================================================
+//  THEME TOGGLE
+// ============================================================
+(function() {
+  const saved = localStorage.getItem('sarpack-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeBtn(saved);
+})();
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sarpack-theme', next);
+  updateThemeBtn(next);
+}
+
+function updateThemeBtn(theme) {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  btn.textContent = theme === 'dark' ? '◑ THEME' : '● THEME';
+}
+
+</script>
+
+<!-- =========================================================
+     LOGIN OVERLAY
+========================================================= -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="login-icon">📋</span>
+      <span class="login-title">LOGBOOK</span>
+      <span class="login-subtitle">SARPack ICS Management</span>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Enter username"
+             autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Enter password"
+             autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') handleLogin()"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn"
+            onclick="handleLogin()">Sign In</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+</body>
+</html>
