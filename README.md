@@ -17,7 +17,7 @@ Designed to work when lives depend on it.
 | **BASECAMP** | Incident command dashboard — map, deployments, real-time field ops | ✅ COMPLETE |
 | **LOGBOOK** | Auto-generates ICS forms from live incident data, IC sign-off, agency export | ✅ COMPLETE |
 | **WARDEN** | Personnel admin — certifications, equipment, scheduling, deployment history | ✅ COMPLETE |
-| **TRAILHEAD** | Offline mobile PWA carried by every field operator | 🔧 IN PRODUCTION |
+| **TRAILHEAD** | Offline mobile PWA carried by every field operator | ✅ COMPLETE |
 | **RELAY** | Radio + Meshtastic bridge, plots GPS positions from field radios | ⏸ DEFERRED — Hardware Required |
 
 ---
@@ -45,7 +45,7 @@ Designed to work when lives depend on it.
   <img src="docs/screenshots/logbook/i_dash.png" alt="LOGBOOK Dashboard" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/logbook/i_fema.png" alt="LOGBOOK ICS Form" width="800"/>
+  <img src="docs/screenshots/logbook/i_fema.png" alt="LOGBOOK FEMA Contacts" width="800"/>
 </p>
 
 ### WARDEN
@@ -57,7 +57,25 @@ Designed to work when lives depend on it.
   <img src="docs/screenshots/warden/w_dash.png" alt="WARDEN Dashboard" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/warden/w_roster.png" alt="WARDEN Roster" width="800"/>
+  <img src="docs/screenshots/warden/w_roster.png" alt="WARDEN Personnel Roster" width="800"/>
+</p>
+
+### TRAILHEAD
+
+<p align="center">
+  <img src="docs/screenshots/trailhead/th_login.png" alt="TRAILHEAD Login" width="400"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/trailhead/th_main.png" alt="TRAILHEAD Map — Live GPS Position" width="400"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/trailhead/th_status.png" alt="TRAILHEAD Mission Status" width="400"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/trailhead/th_patient.png" alt="TRAILHEAD Patient Assessment" width="400"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/trailhead/th_radio.png" alt="TRAILHEAD Radio Log" width="400"/>
 </p>
 
 ---
@@ -125,7 +143,7 @@ Narrative fields are completed by the IC. A compliance validator flags missing r
 | Phase 2 | BASECAMP — incident command, map, deployments | ✅ Complete |
 | Phase 3 | LOGBOOK — ICS form generation and export | ✅ Complete |
 | Phase 3 | RELAY — Meshtastic radio bridge | ⏸ Deferred — Hardware Required |
-| Phase 4 | TRAILHEAD — offline mobile PWA | 🔧 In Production |
+| Phase 4 | TRAILHEAD — offline mobile PWA | ✅ Complete |
 | Phase 5 | ADS integration, tabletop test, production deploy | Planned |
 
 ---
@@ -173,7 +191,7 @@ python sarpack.py
 
 ## Security
 
-SARPack is monitored in production by the [Arcane Defense Suite](https://github.com/JMitchTech/ARCANE-Defense-Suite) 
+SARPack is monitored in production by the [Arcane Defense Suite](https://github.com/JMitchTech/ARCANE-Defense-Suite) — a custom-built cybersecurity platform providing network scanning, log analysis, honeypot detection, and SIEM correlation.
 
 ---
 
