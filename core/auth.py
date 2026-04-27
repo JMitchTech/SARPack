@@ -327,16 +327,19 @@ def require_permission(permission: str):
 # ---------------------------------------------------------------------------
 
 def create_user(username: str, password: str, role: str,
-                personnel_id: str | None = None) -> str:
+                personnel_id: str | None = None,
+                must_change_password: bool = False) -> str:
     """
     Create a new SARPack user account.
     Returns the new user's id.
 
     Args:
-        username:     Unique login name
-        password:     Plain text password (hashed before storage)
-        role:         One of ROLES
-        personnel_id: Optional link to a personnel record in WARDEN
+        username:             Unique login name
+        password:             Plain text password (hashed before storage)
+        role:                 One of ROLES
+        personnel_id:         Optional link to a personnel record in WARDEN
+        must_change_password: If True, user is forced to set a new password
+                              on their first login.
     """
     if role not in ROLES:
         raise ValueError(f"Invalid role '{role}'. Must be one of: {ROLES}")
@@ -350,15 +353,93 @@ def create_user(username: str, password: str, role: str,
     with local_db() as db:
         db.execute(
             "INSERT INTO users (id, personnel_id, username, password_hash, role, "
-            "is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-            (user_id, personnel_id, username, hash_password(password), role, ts, ts),
+            "is_active, must_change_password, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)",
+            (user_id, personnel_id, username, hash_password(password), role,
+             1 if must_change_password else 0, ts, ts),
         )
 
-    log.info("Created user '%s' with role '%s'", username, role)
+    log.info("Created user '%s' with role '%s' (must_change=%s)",
+             username, role, must_change_password)
     return user_id
 
 
 def authenticate(username: str, password: str) -> dict | None:
+    """
+    Attempt login. Returns the user record and a new session token on success.
+    Returns None on failure. Logs all attempts.
+
+    Returns dict with keys: user_id, username, role, token, must_change_password
+    """
+    with local_db() as db:
+        row = db.execute(
+            "SELECT * FROM users WHERE username = ? AND is_active = 1",
+            (username,),
+        ).fetchone()
+
+    if not row:
+        log.warning("Login failed: unknown user '%s'", username)
+        return None
+
+    row = dict(row)
+
+    if not verify_password(password, row["password_hash"]):
+        log.warning("Login failed: wrong password for '%s'", username)
+        return None
+
+    # Update last login timestamp
+    with local_db() as db:
+        db.execute(
+            "UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?",
+            (now_utc(), now_utc(), row["id"]),
+        )
+
+    token = create_session(row["id"])
+    log.info("User '%s' logged in (role=%s)", username, row["role"])
+
+    return {
+        "user_id":              row["id"],
+        "username":             row["username"],
+        "role":                 row["role"],
+        "personnel_id":         row["personnel_id"],
+        "token":                token,
+        "permissions":          list(ROLE_PERMISSIONS.get(row["role"], set())),
+        "must_change_password": bool(row.get("must_change_password", 0)),
+    }
+
+
+def change_own_password(user_id: str, current_password: str, new_password: str) -> bool:
+    """
+    Allow a user to change their own password.
+    Verifies the current password first (prevents token-hijack escalation).
+    Clears must_change_password on success.
+    Returns True on success, False if current password is wrong.
+    """
+    if len(new_password) < 10:
+        raise ValueError("New password must be at least 10 characters.")
+
+    with local_db() as db:
+        row = db.execute(
+            "SELECT password_hash FROM users WHERE id = ? AND is_active = 1",
+            (user_id,),
+        ).fetchone()
+
+    if not row:
+        return False
+
+    if not verify_password(current_password, row["password_hash"]):
+        log.warning("change_own_password: wrong current password for user_id=%s", user_id)
+        return False
+
+    with local_db() as db:
+        db.execute(
+            "UPDATE users SET password_hash = ?, must_change_password = 0, "
+            "updated_at = ? WHERE id = ?",
+            (hash_password(new_password), now_utc(), user_id),
+        )
+
+    log.info("User id=%s changed their own password", user_id)
+    return True
     """
     Attempt login. Returns the user record and a new session token on success.
     Returns None on failure. Logs all attempts.
@@ -398,4 +479,5 @@ def authenticate(username: str, password: str) -> dict | None:
         "personnel_id": row["personnel_id"],
         "token": token,
         "permissions": list(ROLE_PERMISSIONS.get(row["role"], set())),
+        "must_change_password": bool(row.get("must_change_password", 0)),
     }
