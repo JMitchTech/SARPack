@@ -40,14 +40,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); font-size: 15px; line-height: 1.6; overflow: hidden; }
 
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
-  pointer-events: none;
-  z-index: 9999;
-}
-
 .app-shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 52px 1fr; height: 100vh; }
 
 /* TOPBAR */
@@ -264,15 +256,6 @@ select option { background: var(--bg-panel); }
   justify-content: center;
   z-index: 2000;
 }
-.login-overlay::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
-  );
-  pointer-events: none;
-}
 .login-card {
   background: var(--bg-panel);
   border: 1px solid var(--border-bright);
@@ -473,7 +456,6 @@ select option { background: var(--bg-panel); }
     <div class="topbar-sub">ICS Form Management &amp; Operations Record</div>
     <div class="topbar-spacer"></div>
     <div class="topbar-status"><div class="status-dot"></div><span>ONLINE · LOCAL MODE</span></div>
-    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
     <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
     <div class="topbar-user" id="topbar-user">IC · ADMIN</div>
   </header>
@@ -1643,23 +1625,6 @@ function updateThemeBtn(theme) {
   btn.textContent = theme === 'dark' ? '◑ THEME' : '● THEME';
 }
 
-
-// ============================================================
-//  THEME TOGGLE
-// ============================================================
-(function() {
-  const saved = localStorage.getItem('sarpack-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  updateThemeBtn(saved);
-})();
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('sarpack-theme', next);
-  updateThemeBtn(next);
-}
 
 function updateThemeBtn(theme) {
   const btn = document.getElementById('theme-toggle');

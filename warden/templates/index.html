@@ -1177,8 +1177,6 @@ textarea {
 [data-theme="light"] .topbar-sub  { color: rgba(255,255,255,0.45); border-left-color: rgba(255,255,255,0.2); }
 [data-theme="light"] .topbar-status { color: rgba(255,255,255,0.6); }
 [data-theme="light"] .topbar-user  { color: #00e676; border-color: rgba(0,230,118,0.4); }
-[data-theme="light"] #theme-toggle { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
-[data-theme="light"] #theme-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 
 [data-theme="light"] .sidebar { background: #ffffff; border-right-color: var(--border); }
 [data-theme="light"] .nav-item { color: #3a4a5a; }
@@ -1208,7 +1206,6 @@ textarea {
       <div class="status-dot"></div>
       <span id="status-text">ONLINE · LOCAL MODE</span>
     </div>
-    <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
     <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all 0.15s">◑ THEME</button>
     <div class="topbar-user" id="topbar-user">IC · ADMIN</div>
   </header>
@@ -2658,23 +2655,6 @@ function updateThemeBtn(theme) {
   btn.textContent = theme === 'dark' ? '◑ THEME' : '● THEME';
 }
 
-
-// ============================================================
-//  THEME TOGGLE
-// ============================================================
-(function() {
-  const saved = localStorage.getItem('sarpack-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  updateThemeBtn(saved);
-})();
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('sarpack-theme', next);
-  updateThemeBtn(next);
-}
 
 function updateThemeBtn(theme) {
   const btn = document.getElementById('theme-toggle');
