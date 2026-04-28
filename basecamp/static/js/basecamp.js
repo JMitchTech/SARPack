@@ -1043,6 +1043,7 @@ let _lkpPending  = null;   // {lat, lng} waiting for IC confirmation
  */
 function enterLkpMode() {
   if (!state.map) { alert('Open the map first.'); return; }
+  if (!state.incidentId) { alert('No incident selected. Select an incident from the top bar first.'); return; }
   _lkpMode = true;
 
   // Visual feedback
@@ -1061,11 +1062,13 @@ function enterLkpMode() {
         className: '',
         html: `<div style="
           background:#b91c1c;color:#fff;
-          font-size:11px;font-weight:700;
-          padding:3px 8px;border-radius:4px;
+          font-size:13px;font-weight:900;
+          padding:5px 11px;border-radius:4px;
           white-space:nowrap;
-          box-shadow:0 2px 6px rgba(0,0,0,0.4);
-          border:2px solid white;
+          box-shadow:0 2px 8px rgba(0,0,0,0.7);
+          border:2px solid #000;
+          text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;
+          letter-spacing:0.5px;
         ">📍 LKP — confirm?</div>`,
         iconAnchor: [0, 0],
       }),
@@ -1092,7 +1095,15 @@ window.cancelLkpMode = cancelLkpMode;
 let _confirmedLkp = false;
 
 async function confirmLkp() {
-  if (!_lkpPending || !state.incidentId) return;
+  if (!_lkpPending) {
+    alert('No LKP position pending. Click the map to drop a pin first.');
+    return;
+  }
+  if (!state.incidentId) {
+    alert('No incident selected. Select an incident from the top bar before setting an LKP.');
+    cancelLkpMode();
+    return;
+  }
   const notes = document.getElementById('lkp-notes-input')?.value?.trim() || '';
 
   const r    = await api('PATCH', `/api/incidents/${state.incidentId}/lkp`, {
@@ -1103,8 +1114,9 @@ async function confirmLkp() {
   const data = await r.json();
 
   if (!r.ok) {
-    alert(data.error || 'Failed to set LKP.');
-    cancelLkpMode();
+    const errEl = document.getElementById('lkp-error-msg');
+    if (errEl) errEl.textContent = data.error || 'Failed to set LKP — check server logs.';
+    else alert(data.error || 'Failed to set LKP.');
     return;
   }
 
@@ -1143,11 +1155,13 @@ function renderLkpMarker(lat, lng, notes) {
       className: '',
       html: `<div style="
         background:#b91c1c;color:#fff;
-        font-size:11px;font-weight:700;
-        padding:4px 10px;border-radius:6px;
+        font-size:13px;font-weight:900;
+        padding:5px 11px;border-radius:4px;
         white-space:nowrap;
-        box-shadow:0 2px 8px rgba(0,0,0,0.4);
-        border:2px solid white;
+        box-shadow:0 2px 8px rgba(0,0,0,0.7);
+        border:2px solid #000;
+        text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;
+        letter-spacing:0.5px;
       ">📍 LKP</div>`,
       iconAnchor: [0, 0],
     }),
@@ -1213,37 +1227,44 @@ function showLkpConfirm(lat, lng) {
   let panel = document.getElementById('lkp-confirm-panel');
   if (!panel) {
     panel = document.createElement('div');
-    panel.id        = 'lkp-confirm-panel';
+    panel.id = 'lkp-confirm-panel';
+    panel.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#fff;border:2px solid #1a1a1a;border-radius:10px;
+      padding:16px 20px;min-width:340px;
+      box-shadow:0 6px 24px rgba(0,0,0,0.3);
+      z-index:9999;display:none;
+    `;
     panel.innerHTML = `
-      <div style="
-        position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
-        background:#fff;border:1px solid #e5e7eb;border-radius:10px;
-        padding:14px 18px;min-width:320px;
-        box-shadow:0 4px 16px rgba(0,0,0,0.15);
-        z-index:1000;
-      ">
-        <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:8px">
-          📍 Confirm LKP placement
-        </div>
-        <div style="font-size:12px;color:#6b7280;margin-bottom:10px" id="lkp-coords-display"></div>
-        <input id="lkp-notes-input" type="text" placeholder="Notes (optional — e.g. near summit marker)"
-          style="width:100%;padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;
-                 font-size:13px;margin-bottom:10px;outline:none;"/>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button onclick="cancelLkpMode()" style="
-            padding:7px 14px;border:1px solid #e5e7eb;border-radius:6px;
-            background:#fff;color:#374151;font-size:13px;cursor:pointer;
-          ">Cancel</button>
-          <button onclick="confirmLkp()" style="
-            padding:7px 14px;border:none;border-radius:6px;
-            background:#b91c1c;color:#fff;font-size:13px;font-weight:600;cursor:pointer;
-          ">Set LKP — broadcast to operators</button>
-        </div>
+      <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:8px">
+        📍 Confirm LKP placement
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px;font-family:monospace" id="lkp-coords-display"></div>
+      <input id="lkp-notes-input" type="text" placeholder="Notes (optional — e.g. near summit marker)"
+        style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;
+               font-size:13px;margin-bottom:12px;outline:none;box-sizing:border-box;"/>
+      <div id="lkp-error-msg" style="font-size:12px;color:#b91c1c;margin-bottom:8px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="lkp-cancel-btn" style="
+          padding:7px 14px;border:1px solid #d1d5db;border-radius:6px;
+          background:#fff;color:#374151;font-size:13px;cursor:pointer;font-weight:500;
+        ">Cancel</button>
+        <button id="lkp-confirm-btn" style="
+          padding:7px 16px;border:none;border-radius:6px;
+          background:#b91c1c;color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+          letter-spacing:0.3px;
+        ">✔ Set LKP — broadcast to operators</button>
       </div>`;
-    document.getElementById('screen-map').appendChild(panel);
+    document.body.appendChild(panel);
+    // Use addEventListener so functions are guaranteed to be in scope
+    panel.querySelector('#lkp-cancel-btn').addEventListener('click', cancelLkpMode);
+    panel.querySelector('#lkp-confirm-btn').addEventListener('click', confirmLkp);
   }
   document.getElementById('lkp-coords-display').textContent =
     `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('lkp-notes-input').value = '';
+  const errEl = document.getElementById('lkp-error-msg');
+  if (errEl) errEl.textContent = '';
   panel.style.display = 'block';
 }
 
@@ -1267,11 +1288,12 @@ window.initMap = function() {
     btn.innerHTML = `
       <button onclick="enterLkpMode()" style="
         position:absolute;top:70px;right:240px;
-        background:#fff;border:1px solid #e5e7eb;
+        background:#fff;border:2px solid #1a1a1a;
         border-radius:6px;padding:7px 12px;
-        font-size:12px;font-weight:600;color:#b91c1c;
-        cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.1);
+        font-size:12px;font-weight:700;color:#b91c1c;
+        cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25);
         z-index:500;display:flex;align-items:center;gap:5px;
+        letter-spacing:0.5px;
       ">📍 Plot LKP</button>`;
     mapEl.appendChild(btn);
 

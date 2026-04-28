@@ -63,19 +63,19 @@ Designed to work when lives depend on it.
 ### TRAILHEAD
 
 <p align="center">
-  <img src="docs/screenshots/trailhead/th_login.png" alt="TRAILHEAD Login" width="400"/>
+  <img src="docs/screenshots/trailhead/th_login.png" alt="TRAILHEAD Login" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/trailhead/th_main.png" alt="TRAILHEAD Map — Live GPS Position" width="400"/>
+  <img src="docs/screenshots/trailhead/th_main.png" alt="TRAILHEAD Map — Live GPS Position" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/trailhead/th_status.png" alt="TRAILHEAD Mission Status" width="400"/>
+  <img src="docs/screenshots/trailhead/th_status.png" alt="TRAILHEAD Mission Status" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/trailhead/th_patient.png" alt="TRAILHEAD Patient Assessment" width="400"/>
+  <img src="docs/screenshots/trailhead/th_patient.png" alt="TRAILHEAD Patient Assessment" width="800"/>
 </p>
 <p align="center">
-  <img src="docs/screenshots/trailhead/th_radio.png" alt="TRAILHEAD Radio Log" width="400"/>
+  <img src="docs/screenshots/trailhead/th_radio.png" alt="TRAILHEAD Radio Log" width="800"/>
 </p>
 
 ---

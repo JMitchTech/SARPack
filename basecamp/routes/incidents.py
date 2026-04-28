@@ -372,3 +372,94 @@ def reopen_incident(incident_id):
 @require_role("IC", "ops_chief", "logistics", "observer")
 def incident_types():
     return jsonify(list(INCIDENT_TYPES))
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/incidents/<id>/lkp
+# Set or update the Last Known Position for an incident.
+# Broadcasts to all connected BASECAMP and TRAILHEAD clients via SocketIO.
+# ---------------------------------------------------------------------------
+
+@incidents_bp.route("/<incident_id>/lkp", methods=["PATCH"])
+@require_role("IC", "ops_chief")
+def set_lkp(incident_id):
+    incident = get_record("incidents", incident_id)
+    if not incident:
+        return jsonify({"error": "Incident not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    lat   = data.get("lat")
+    lng   = data.get("lng")
+    notes = data.get("notes", "")
+
+    if lat is None or lng is None:
+        return jsonify({"error": "lat and lng are required"}), 400
+
+    try:
+        lat = float(lat)
+        lng = float(lng)
+    except (TypeError, ValueError):
+        return jsonify({"error": "lat and lng must be numeric"}), 400
+
+    try:
+        versioned_update(
+            "incidents", incident_id,
+            {"lkp_lat": lat, "lkp_lng": lng, "lkp_notes": notes},
+            expected_version=incident["version"],
+        )
+    except VersionConflictError:
+        return jsonify({"error": "Version conflict — re-fetch and try again"}), 409
+
+    # Broadcast to all connected clients
+    try:
+        from basecamp.app import socketio
+        socketio.emit("lkp_updated", {
+            "incident_id": incident_id,
+            "lkp_lat":     lat,
+            "lkp_lng":     lng,
+            "lkp_notes":   notes,
+        }, room=incident_id)
+    except Exception:
+        pass
+
+    log.info("LKP set for incident %s: %.5f, %.5f", incident_id, lat, lng)
+    return jsonify({
+        "message": "LKP updated",
+        "incident_id": incident_id,
+        "lkp_lat":   lat,
+        "lkp_lng":   lng,
+        "lkp_notes": notes,
+    })
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/incidents/<id>/lkp
+# Clear the Last Known Position. Notifies all field operators.
+# ---------------------------------------------------------------------------
+
+@incidents_bp.route("/<incident_id>/lkp", methods=["DELETE"])
+@require_role("IC", "ops_chief")
+def clear_lkp(incident_id):
+    incident = get_record("incidents", incident_id)
+    if not incident:
+        return jsonify({"error": "Incident not found"}), 404
+
+    try:
+        versioned_update(
+            "incidents", incident_id,
+            {"lkp_lat": None, "lkp_lng": None, "lkp_notes": None},
+            expected_version=incident["version"],
+        )
+    except VersionConflictError:
+        return jsonify({"error": "Version conflict — re-fetch and try again"}), 409
+
+    try:
+        from basecamp.app import socketio
+        socketio.emit("lkp_cleared", {
+            "incident_id": incident_id,
+        }, room=incident_id)
+    except Exception:
+        pass
+
+    log.info("LKP cleared for incident %s", incident_id)
+    return jsonify({"message": "LKP cleared", "incident_id": incident_id})
