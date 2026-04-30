@@ -1,0 +1,20 @@
+# SARPack 2.0 — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Core framework
+flask>=3.0.0
+flask-socketio>=5.3.6
+python-dotenv>=1.0.0
+
+# Auth & security
+bcrypt>=4.1.2
+pyjwt>=2.8.0
+pyotp>=2.9.0          # TOTP-based MFA for WARDEN
+qrcode>=7.4.2         # MFA QR code generation
+
+# Utilities
+python-dateutil>=2.9.0
+pillow>=10.2.0        # Image processing for uploads
+
+# SocketIO async backend
+eventlet>=0.35.2
