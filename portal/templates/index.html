@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SARPack 2.0 — Unified Rescue Operations Platform</title>
+  <link rel="stylesheet" href="/static/css/sarpack.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN SCREEN
+============================================================ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/static/assets/sarpack_logo.png" class="login-logo-img" alt="SARPack"/>
+      <div class="login-system-label">Unified Rescue Operations Platform</div>
+    </div>
+
+    <!-- Step 1: Username + Password -->
+    <div id="login-step-1">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="login-username" autocomplete="username"
+               autocapitalize="none" placeholder="Enter username"
+               onkeydown="if(event.key==='Enter') handleLogin()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" autocomplete="current-password"
+               placeholder="Enter password"
+               onkeydown="if(event.key==='Enter') handleLogin()"/>
+      </div>
+      <button class="btn btn-primary w-full" id="login-btn"
+              onclick="handleLogin()">Sign In</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+
+    <!-- Step 2: MFA (shown after successful password) -->
+    <div id="login-step-2" style="display:none">
+      <div class="mfa-prompt">
+        <div class="mfa-prompt-title">Two-Factor Auth</div>
+        <div class="mfa-prompt-sub">Enter the 6-digit code from your authenticator app</div>
+      </div>
+      <div class="form-group">
+        <input type="text" id="mfa-code" class="mfa-code-input"
+               maxlength="6" placeholder="000000"
+               onkeydown="if(event.key==='Enter') handleMFA()"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+      </div>
+      <button class="btn btn-primary w-full" id="mfa-btn"
+              onclick="handleMFA()">Verify</button>
+      <div class="login-error" id="mfa-error"></div>
+      <button class="btn btn-ghost w-full" style="margin-top:8px"
+              onclick="backToLogin()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SOS BANNER — renders over everything, all modules
+============================================================ -->
+<div id="sos-banner" onclick="handleSOSBannerClick()">
+  <div>
+    <div class="sos-banner-text">⚑ Operator in Distress</div>
+    <div class="sos-banner-detail" id="sos-banner-detail">Incoming SOS alert</div>
+  </div>
+  <div class="sos-banner-cta">Click → GPS Location</div>
+</div>
+
+<!-- ============================================================
+     PORTAL SHELL
+============================================================ -->
+<div class="portal-shell" id="portal-shell" style="display:none">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="/static/assets/sarpack_logo.png" class="topbar-logo-img" alt="SARPack"
+           onerror="this.style.display='none'; document.getElementById('topbar-text-logo').style.display='block'"/>
+      <div id="topbar-text-logo" style="display:none" class="topbar-logo-text">
+        <span class="sar">SAR</span><span class="pack">PACK</span>
+      </div>
+      <div class="topbar-tagline">Unified Rescue Ops</div>
+    </div>
+
+    <!-- Incident selector -->
+    <div class="incident-selector" id="incident-selector">
+      <button class="incident-selector-btn" onclick="toggleIncidentDropdown()">
+        <span id="topbar-incident-display">No Active Incident</span>
+        <span style="color:var(--text-muted)">▾</span>
+      </button>
+      <div class="incident-selector-dropdown" id="incident-dropdown"></div>
+    </div>
+
+    <div class="topbar-spacer"></div>
+
+    <!-- Op clock -->
+    <div style="text-align:center;flex-shrink:0">
+      <div class="topbar-op-time" id="op-clock">00:00:00</div>
+      <span class="topbar-op-time-label">Operation Time</span>
+    </div>
+
+    <!-- Connection status -->
+    <div class="topbar-status">
+      <div class="status-dot" id="connection-dot"></div>
+      <span id="connection-label">Connecting...</span>
+    </div>
+
+    <!-- User badge -->
+    <div class="topbar-user" id="topbar-user" onclick="handleLogout()">
+      Loading...
+    </div>
+  </header>
+
+  <!-- MODULE TAB BAR -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-module="basecamp" onclick="switchModule('basecamp')">
+      <span class="tab-icon">⬡</span>
+      BASECAMP
+      <span class="tab-popout" onclick="popoutModule('basecamp', event)" title="Open in new window">⤢</span>
+      <span class="tab-badge" id="badge-basecamp" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" data-module="warden" onclick="switchModule('warden')">
+      <span class="tab-icon">◈</span>
+      WARDEN
+      <span class="tab-popout" onclick="popoutModule('warden', event)" title="Open in new window">⤢</span>
+    </button>
+    <button class="tab-btn" data-module="logbook" onclick="switchModule('logbook')">
+      <span class="tab-icon">◉</span>
+      LOGBOOK
+      <span class="tab-popout" onclick="popoutModule('logbook', event)" title="Open in new window">⤢</span>
+    </button>
+    <button class="tab-btn" data-module="relay" onclick="switchModule('relay')">
+      <span class="tab-icon">◎</span>
+      RELAY
+      <span class="tab-popout" onclick="popoutModule('relay', event)" title="Open in new window">⤢</span>
+      <span class="tab-badge" id="badge-relay" style="display:none">0</span>
+    </button>
+  </nav>
+
+  <!-- MODULE PANELS -->
+  <div class="module-area">
+
+    <!-- ==================== BASECAMP ==================== -->
+    <div class="module-panel active" id="module-basecamp">
+      <div class="page-header">
+        <div>
+          <div class="page-title">BASE<span class="page-title-accent">CAMP</span></div>
+          <div class="page-subtitle">Incident Command Interface</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="refreshBasecamp()">↻ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openNewIncidentModal()">+ New Incident</button>
+          <button class="btn btn-ghost btn-sm" onclick="popoutModule('basecamp', event)">⤢ Popout</button>
+        </div>
+      </div>
+      <div class="page-body" id="basecamp-body">
+        <div class="loading-state"><div class="loading-spinner"></div>Loading BASECAMP...</div>
+      </div>
+    </div>
+
+    <!-- ==================== WARDEN ==================== -->
+    <div class="module-panel" id="module-warden">
+      <!-- WARDEN MFA gate -->
+      <div id="warden-mfa-gate" style="display:none;flex:1;align-items:center;justify-content:center">
+        <div class="login-card" style="width:360px">
+          <div style="text-align:center;margin-bottom:24px">
+            <div class="page-title" style="font-size:20px">WARDEN<span class="page-title-accent"> ACCESS</span></div>
+            <div class="page-subtitle" style="margin-top:4px">MFA verification required for personnel data</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Authenticator Code</label>
+            <input type="text" id="warden-mfa-input" class="mfa-code-input"
+                   maxlength="6" placeholder="000000"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                   onkeydown="if(event.key==='Enter') verifyWardenMFA()"/>
+          </div>
+          <button class="btn btn-primary w-full" onclick="verifyWardenMFA()">Verify Access</button>
+          <div class="login-error" id="warden-mfa-error"></div>
+        </div>
+      </div>
+
+      <div id="warden-content" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+        <div class="page-header">
+          <div>
+            <div class="page-title">WAR<span class="page-title-accent">DEN</span></div>
+            <div class="page-subtitle">Personnel Roster &amp; Asset Management</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" onclick="refreshWarden()">↻ Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="openNewPersonnelModal()">+ Add Personnel</button>
+            <button class="btn btn-ghost btn-sm" onclick="popoutModule('warden', event)">⤢ Popout</button>
+          </div>
+        </div>
+
+        <!-- WARDEN sub-nav -->
+        <div style="display:flex;gap:2px;padding:0 8px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-shrink:0">
+          <button class="tab-btn active" style="font-size:12px;padding:0 14px" data-warden-tab="roster" onclick="switchWardenTab('roster')">Roster</button>
+          <button class="tab-btn" style="font-size:12px;padding:0 14px" data-warden-tab="certifications" onclick="switchWardenTab('certifications')">Certifications</button>
+          <button class="tab-btn" style="font-size:12px;padding:0 14px" data-warden-tab="assets" onclick="switchWardenTab('assets')">Assets</button>
+          <button class="tab-btn" style="font-size:12px;padding:0 14px" data-warden-tab="training" onclick="switchWardenTab('training')">Training</button>
+          <button class="tab-btn" style="font-size:12px;padding:0 14px" data-warden-tab="radio" onclick="switchWardenTab('radio')">Radio Registry</button>
+        </div>
+        <div class="page-body" id="warden-body">
+          <div class="loading-state"><div class="loading-spinner"></div>Loading WARDEN...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LOGBOOK ==================== -->
+    <div class="module-panel" id="module-logbook">
+      <div class="page-header">
+        <div>
+          <div class="page-title">LOG<span class="page-title-accent">BOOK</span></div>
+          <div class="page-subtitle">ICS Forms, History &amp; Reference Library</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="popoutModule('logbook', event)">⤢ Popout</button>
+        </div>
+      </div>
+
+      <!-- LOGBOOK sub-nav -->
+      <div style="display:flex;gap:2px;padding:0 8px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-shrink:0">
+        <button class="tab-btn active" style="font-size:12px;padding:0 14px" data-logbook-tab="dashboard" onclick="switchLogbookTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="forms" onclick="switchLogbookTab('forms')">Active Forms</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="history" onclick="switchLogbookTab('history')">Incident History</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="library" onclick="switchLogbookTab('library')">ICS Library</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="symbols" onclick="switchLogbookTab('symbols')">SAR Symbols</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="training" onclick="switchLogbookTab('training')">Training</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-logbook-tab="contacts" onclick="switchLogbookTab('contacts')">EMA Contacts</button>
+      </div>
+      <div class="page-body" id="logbook-body">
+        <div class="loading-state"><div class="loading-spinner"></div>Loading LOGBOOK...</div>
+      </div>
+    </div>
+
+    <!-- ==================== RELAY ==================== -->
+    <div class="module-panel" id="module-relay">
+      <div class="page-header">
+        <div>
+          <div class="page-title">RE<span class="page-title-accent">LAY</span></div>
+          <div class="page-subtitle">Meshtastic Network &amp; Radio Configuration</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="refreshRelay()">↻ Refresh</button>
+          <button class="btn btn-ghost btn-sm" onclick="popoutModule('relay', event)">⤢ Popout</button>
+        </div>
+      </div>
+
+      <!-- RELAY sub-nav -->
+      <div style="display:flex;gap:2px;padding:0 8px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-shrink:0">
+        <button class="tab-btn active" style="font-size:12px;padding:0 14px" data-relay-tab="status" onclick="switchRelayTab('status')">Mesh Status</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-relay-tab="nodes" onclick="switchRelayTab('nodes')">Nodes</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-relay-tab="channels" onclick="switchRelayTab('channels')">Channel Plan</button>
+        <button class="tab-btn" style="font-size:12px;padding:0 14px" data-relay-tab="interop" onclick="switchRelayTab('interop')">Radio Interop</button>
+      </div>
+      <div class="page-body" id="relay-body">
+        <div class="loading-state"><div class="loading-spinner"></div>Loading RELAY...</div>
+      </div>
+    </div>
+
+  </div><!-- .module-area -->
+</div><!-- .portal-shell -->
+
+<!-- ============================================================
+     MODALS
+============================================================ -->
+
+<!-- New Incident Modal -->
+<div class="modal-overlay" id="modal-new-incident">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Incident</div>
+      <button class="modal-close" onclick="closeModal('modal-new-incident')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">Incident Details</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label required">Incident Number</label>
+          <input type="text" id="new-inc-number" placeholder="e.g. KRS-2026-0048"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label required">Incident Type</label>
+          <select id="new-inc-type">
+            <option value="sar">Search &amp; Rescue</option>
+            <option value="usar">USAR</option>
+            <option value="disaster_relief">Disaster Relief</option>
+            <option value="medical">Medical</option>
+            <option value="training">Training</option>
+            <option value="standby">Standby</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Incident Name</label>
+        <input type="text" id="new-inc-name" placeholder="e.g. Hawk Mountain Missing Hiker"/>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">County</label>
+          <input type="text" id="new-inc-county" placeholder="e.g. Schuylkill"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input type="text" id="new-inc-state" value="PA" maxlength="2"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">IC Name</label>
+        <input type="text" id="new-inc-ic" placeholder="Incident Commander name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="new-inc-desc" rows="3"
+                  placeholder="Brief description of the incident..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-incident')">Cancel</button>
+      <button class="btn btn-primary" onclick="createIncident()">Create Incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Personnel Modal -->
+<div class="modal-overlay" id="modal-new-personnel">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Personnel</div>
+      <button class="modal-close" onclick="closeModal('modal-new-personnel')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">Personal Information</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label required">First Name</label>
+          <input type="text" id="new-p-first" placeholder="First name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label required">Last Name</label>
+          <input type="text" id="new-p-last" placeholder="Last name"/>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Call Sign</label>
+          <input type="text" id="new-p-callsign" placeholder="e.g. ALPHA-1"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Blood Type</label>
+          <select id="new-p-blood">
+            <option value="">Unknown</option>
+            <option>O+</option><option>O-</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="tel" id="new-p-phone" placeholder="Phone number"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="new-p-email" placeholder="Email address"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Home Agency</label>
+        <input type="text" id="new-p-agency" placeholder="e.g. Schuylkill County SRT"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="new-p-notes" rows="2" placeholder="Any additional notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-personnel')">Cancel</button>
+      <button class="btn btn-primary" onclick="createPersonnel()">Add Personnel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/static/js/portal.js"></script>
+<script src="/static/js/basecamp.js"></script>
+<script src="/static/js/warden.js"></script>
+<script src="/static/js/logbook.js"></script>
+<script src="/static/js/relay.js"></script>
+
+</body>
+</html>
